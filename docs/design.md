@@ -1,7 +1,17 @@
 # fegraph design discussion
 
-Initial proposal: 2026-10-09. The requirements below distinguish the requested
-product from implementation recommendations that remain open for discussion.
+Original design discussion: 2026-10-09. This document preserves the motivation
+and initial proposals. Johannes subsequently authorized implementation with
+syntax consistent with `ferank`. The implemented interface and exact supported
+options are authoritative in [help fegraph](../stata/fegraph.sthlp) and the
+[README](../README.md); the subcommand syntax sketches below are historical.
+
+Version 0.1.0 implements the firm, bipartite, ladder and heatmap views, both
+panel and prepared-flow inputs, explicit outside states, rank bins, gross/net
+flows, supplied attributes, layouts, display selection and audit tables.
+The additional research figures in section 10 (beyond the heatmap) remain
+possible extensions, not commands in this version. See [validation](validation.md)
+for the actual qualification boundary.
 
 ## 1. Purpose and scope
 
@@ -358,5 +368,6 @@ Rendering checks need visual inspection in addition to count assertions.
   Recommendation: explicit mapping, never infer it solely from missing firm IDs.
 - What license should apply when code is distributed? Leave unselected for now.
 
-Repository creation and these design/prototype files do not freeze these choices
-or represent approval to implement the entire roadmap.
+The original repository-creation request did not freeze these choices. Johannes
+subsequently authorized full implementation of the visualization command; current
+behavior and limitations are documented in the command help.

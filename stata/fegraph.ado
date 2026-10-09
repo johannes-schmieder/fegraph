@@ -1,0 +1,280 @@
+*! fegraph 0.1.0 09oct2026
+program define fegraph, rclass
+    version 16.0
+    if substr(strtrim(`"`0'"'),1,1)=="," {
+        syntax , [VERSION SELFTEST]
+        if ("`version'"!="")+("`selftest'"!="")!=1 error 198
+        if "`selftest'"!="" {
+            quietly fegraph_example, nodraw
+            assert r(flow_total)==40
+            return scalar passed=1
+            di as result "fegraph selftest passed"
+        }
+        else di as text "fegraph 0.1.0"
+        return local version "0.1.0"
+        exit
+    }
+    tempname work model
+    local caller "`c(frame)'"
+    capture noisily fegraph__run `0' _work(`work') _model(`model')
+    local rc = _rc
+    if !`rc' return add
+    quietly frame change `caller'
+    capture frame drop `work'
+    capture mata: mata drop `model'
+    if `rc' exit `rc'
+end
+
+program define fegraph__run, rclass
+    version 16.0
+    syntax varlist(min=1 max=2) [if] [in], _WORK(name) _MODEL(name) ///
+        [WORKER(varname) TIME(varname numeric) FLOW(varname numeric) ///
+        TYPE(string) EDGE(string) NET MAXGAP(real 1) SAMPLE(string) ///
+        CATEGORICAL NODEColor(varlist numeric) NODESize(string) ORDER(varlist numeric) ///
+        LEVEL(varlist numeric) LABEL(varlist) WORKERCOLOR(varname numeric) ///
+        EFFECTGROUP(varlist) POOLed NONEMPloyment(varname numeric) ///
+        OUTSIDE(string) OUTSIDELABEL(string) WAGE(varname numeric) WAGESCALE(string) ///
+        EDGECOLOR(string) EDGESIZE(string) STATistic(string) EXPOSURE(varname numeric) ///
+        COMPONENT(string) EGO(string) STEPS(integer 1) MINFLOW(real 0) TOP(integer 0) ///
+        BINS(integer 0) BINWEIGHT(string) DESCending LAYOUT(string) ///
+        SEED(integer 1) ITERations(integer 200) MAXNodes(integer 200) MAXEdges(integer 1000) ///
+        COORDinates(string) NODEFile(string) EDGEFile(string) MAPFile(string) ///
+        SAVing(string) COLORLIMITS(numlist min=2 max=2) EDGELIMITS(numlist min=2 max=2) ///
+        SIZEMAX(real 0) WIDTHMAX(real 0) REPLACE NAME(string) NOLABELS NODRAW GRAPHOPTS(string asis)]
+    foreach opt in type edge sample edgecolor edgesize statistic component binweight layout wagescale {
+        local `opt' = lower(strtrim(`"``opt''"'))
+    }
+    if "`type'"=="" local type firm
+    if "`edge'"=="" local edge moves
+    if "`sample'"=="" local sample selected
+    if "`edgecolor'"=="" local edgecolor none
+    if "`edgesize'"=="" local edgesize flow
+    if "`statistic'"=="" local statistic count
+    if "`component'"=="" local component all
+    if "`binweight'"=="" local binweight firm
+    if "`outsidelabel'"=="" local outsidelabel Nonemployment
+    if "`layout'"=="" local layout = cond("`type'"=="bipartite","bipartite","force")
+    if !inlist("`type'","firm","bipartite","ladder","heatmap") | ///
+        !inlist("`edge'","moves","shared") | !inlist("`sample'","selected","original") | ///
+        !inlist("`statistic'","count","share","probability") | ///
+        !inlist("`edgecolor'","none","effect","wage") | ///
+        !inlist("`edgesize'","flow","effect","wage") | ///
+        !inlist("`binweight'","firm","employment") | ///
+        !inlist("`layout'","force","circle","bipartite") {
+        di as error "invalid graph, edge, sample, statistic, style, binweight or layout choice; see help fegraph"
+        exit 198
+    }
+    if `maxgap'<=0 | missing(`maxgap') | `minflow'<0 | missing(`minflow') | ///
+        `bins'<0 | `top'<0 | `steps'<1 | `iterations'<1 | `iterations'>2000 | ///
+        `maxnodes'<1 | `maxnodes'>2000 | `maxedges'<1 | `maxedges'>20000 {
+        di as error "invalid numerical control; maxnodes() <= 2000 and maxedges() <= 20000"
+        exit 198
+    }
+    if `sizemax'<0 | missing(`sizemax') | `widthmax'<0 | missing(`widthmax') error 198
+    foreach opt in colorlimits edgelimits {
+        if "``opt''"!="" {
+            local low : word 1 of ``opt''
+            local high : word 2 of ``opt''
+            if `low'>=`high' | missing(`low',`high') {
+                di as error "`opt'() requires two finite increasing limits"
+                exit 198
+            }
+        }
+    }
+    if "`categorical'"!="" & "`colorlimits'"!="" {
+        di as error "categorical colors cannot use colorlimits()"
+        exit 198
+    }
+    if "`categorical'"!="" & `bins'>0 {
+        di as error "categorical colors require unbinned firms; bin averages have no category interpretation"
+        exit 198
+    }
+    if "`edgelimits'"!="" {
+        local low : word 1 of `edgelimits'
+        local high : word 2 of `edgelimits'
+        if abs(`low'+`high')>1e-12 | `high'<=0 {
+            di as error "edgelimits() must be symmetric around zero"
+            exit 198
+        }
+    }
+    local nvar : word count `varlist'
+    local panel = (`nvar'==1)
+    if `panel' & "`worker'"=="" {
+        di as error "panel input requires worker()"
+        exit 198
+    }
+    if `panel' & "`time'"=="" & "`type'"!="bipartite" & "`edge'"!="shared" {
+        di as error "directed panel flows require time()"
+        exit 198
+    }
+    if (`panel' & "`flow'`exposure'`outside'"!="") | ///
+       (!`panel' & "`worker'`time'`nonemployment'`workercolor'`wage'"!="") {
+        di as error "panel and prepared-flow options cannot be mixed"
+        exit 198
+    }
+    if !`panel' & ("`type'"=="bipartite" | "`edge'"=="shared") {
+        di as error "bipartite and shared-worker views require worker-firm records"
+        exit 198
+    }
+    if ("`type'"=="bipartite" | "`edge'"=="shared") & ///
+       ("`net'"!="" | "`statistic'"!="count" | "`edgecolor'"!="none" | "`edgesize'"!="flow") {
+        di as error "match graphs use undirected counts, without wage/effect edge statistics"
+        exit 198
+    }
+    if "`net'"!="" & ("`statistic'"!="count" | "`edgecolor'"=="wage" | "`edgesize'"=="wage") {
+        di as error "net flows require statistic(count); mover wage statistics apply to gross flows"
+        exit 198
+    }
+    if inlist("wage","`edgecolor'","`edgesize'") & "`wage'"=="" {
+        di as error "wage edge styling requires wage() and wagescale(log|level)"
+        exit 198
+    }
+    if "`wage'"!="" & !inlist("`wagescale'","log","level") {
+        di as error "wage() requires explicit wagescale(log|level)"
+        exit 198
+    }
+    if "`statistic'"=="probability" & !`panel' & "`exposure'"=="" {
+        di as error "prepared-flow probabilities require exposure(): full origin exposure"
+        exit 198
+    }
+    if `bins'>0 & !inlist("`type'","ladder","heatmap") {
+        di as error "bins() is available for ladder and heatmap"
+        exit 198
+    }
+    if "`type'"=="ladder" & "`order'"=="" {
+        di as error "ladder requires order(); supply effects, scores or increasing percentiles"
+        exit 198
+    }
+    if `bins'>0 & "`order'"=="" {
+        di as error "bins() requires order()"
+        exit 198
+    }
+    if "`type'"=="ladder" & "`level'"=="" local level `order'
+    if "`categorical'"!="" & inlist("effect","`edgecolor'","`edgesize'") & "`level'"=="" {
+        di as error "effect edge styling with categorical node colors requires level()"
+        exit 198
+    }
+    if "`workercolor'"!="" & "`type'"!="bipartite" {
+        di as error "workercolor() applies only to bipartite graphs"
+        exit 198
+    }
+    if "`layout'"=="bipartite" & "`type'"!="bipartite" {
+        di as error "layout(bipartite) requires type(bipartite)"
+        exit 198
+    }
+    foreach opt in nodecolor order level label effectgroup {
+        local n : word count ``opt''
+        if `n'>0 & `n'!=`nvar' {
+            di as error "`opt'() takes one variable in panel mode, or two: origin then destination"
+            exit 198
+        }
+    }
+    if "`nodesize'"=="" local nodesize = cond(`panel',"employment","flow")
+    if !inlist("`nodesize'","employment","flow","equal","matches") {
+        confirm numeric variable `nodesize'
+        local n : word count `nodesize'
+        if `n'!=`nvar' {
+            di as error "nodesize() requires one panel or two endpoint variables"
+            exit 198
+        }
+        local sizevars `nodesize'
+    }
+    if !`panel' & inlist("`nodesize'","employment","matches") {
+        di as error "prepared flows require supplied size variables, nodesize(flow), or nodesize(equal)"
+        exit 198
+    }
+    if `panel' & "`nodesize'"=="employment" & "`time'"=="" local nodesize matches
+    if inlist("effect","`edgecolor'","`edgesize'") & "`level'`nodecolor'"=="" {
+        di as error "effect edge styling requires level() or nodecolor()"
+        exit 198
+    }
+    if "`type'"=="heatmap" & ("`edgecolor'"!="none" | "`edgesize'"!="flow") {
+        di as error "heatmap color represents statistic(); edge styling is for network views"
+        exit 198
+    }
+    if "`component'"!="all" & "`component'"!="largest" {
+        confirm integer number `component'
+        if `component'<1 error 198
+    }
+    foreach a in nodefile edgefile mapfile {
+        if `"``a''"'!="" & substr(lower(`"``a''"'),-4,.)!=".dta" {
+            di as error "`a'() requires a .dta filename"
+            exit 198
+        }
+    }
+    if `"`saving'"'!="" & substr(lower(`"`saving'"'),-4,.)!=".gph" {
+        di as error "saving() requires a .gph filename; use graph export for PNG, SVG or PDF"
+        exit 198
+    }
+    foreach a in nodefile edgefile mapfile saving {
+        if `"``a''"'!="" & "`replace'"=="" confirm new file `"``a''"'
+        foreach b in nodefile edgefile mapfile saving {
+            if "`a'"!="`b'" & `"``a''"'!="" & `"``a''"'==`"``b''"' {
+                di as error "output filenames must be distinct"
+                exit 198
+            }
+        }
+    }
+    marksample touse, novarlist
+    quietly count if `touse'
+    if !r(N) error 2000
+    local copyvars `varlist' `worker' `time' `flow' `nodecolor' `sizevars' `order' `level' ///
+        `label' `effectgroup' `nonemployment' `wage' `exposure' `workercolor' `touse'
+    local copyvars : list uniq copyvars
+    if "`sample'"=="original" & `panel' frame put `copyvars', into(`_work')
+    else frame put `copyvars' if `touse', into(`_work')
+    frame change `_work'
+    fegraph__load
+    mata: `_model' = fegraph__new()
+    mata: fegraph__build(`_model')
+    if `"`coordinates'"'!="" {
+        use `"`coordinates'"', clear
+        confirm variable id kind x y
+        mata: fegraph__coordinates(`_model')
+    }
+    tempname summary
+    mata: st_matrix("`summary'", `_model'.stats)
+    matrix colnames `summary' = N_input N_workers N_firms N_matches N_eligible N_gaps N_unknown ///
+        N_components N_nodes N_edges N_shown_nodes N_shown_edges flow_total flow_shown ///
+        flow_boundary flow_within flow_hidden_net N_missing_color
+    quietly clear
+    mata: fegraph__plot(`_model')
+    local autoopts `"note("`scale_note'" "`edge_note'" "`coverage_note'", size(vsmall))"'
+    if "`type'"=="heatmap" local autoopts `"`autoopts' xlabel(`heatlabels', angle(45) labsize(vsmall)) ylabel(`heatlabels', labsize(vsmall) angle(horizontal)) xscale(range(.5 `heatmax')) yscale(range(.5 `heatmax'))"'
+    if "`outside_line'"!="" local autoopts `"`autoopts' yline(`outside_line', lpattern(dash) lcolor(gs12))"'
+    if "`ladderlabels'"!="" local autoopts `"`autoopts' ylabel(`ladderlabels', angle(horizontal) format(%5.2g))"'
+    fegraph__draw, type(`type') edge(`edge') `net' `nolabels' `nodraw' ///
+        edgecolor(`edgecolor') edgesize(`edgesize') statistic(`statistic') ///
+        cmin(`colormin') cmax(`colormax') wmin(`workermin') wmax(`workermax') categories(`categories') name(`name') graphopts(`autoopts' `graphopts')
+    if `"`saving'"'!="" graph save `"`saving'"', `replace'
+    if `"`nodefile'"'!="" {
+        quietly clear
+        mata: fegraph__nodes(`_model')
+        quietly save `"`nodefile'"', `replace'
+    }
+    if `"`edgefile'"'!="" {
+        quietly clear
+        mata: fegraph__edges(`_model')
+        quietly save `"`edgefile'"', `replace'
+    }
+    if `"`mapfile'"'!="" {
+        quietly clear
+        mata: fegraph__mapping(`_model')
+        quietly save `"`mapfile'"', `replace'
+    }
+    forvalues k=1/18 {
+        local fields N_input N_workers N_firms N_matches N_eligible N_gaps N_unknown ///
+            N_components N_nodes N_edges N_shown_nodes N_shown_edges flow_total flow_shown ///
+            flow_boundary flow_within flow_hidden_net N_missing_color
+        local field : word `k' of `fields'
+        return scalar `field' = el(`summary',1,`k')
+    }
+    return local type "`type'"
+    return local input = cond(`panel',"panel","edge")
+    return local version "0.1.0"
+    return local sample "`sample'"
+    di as text "fegraph: " as result el(`summary',1,11) as text " nodes; " ///
+        as result el(`summary',1,12) as text " edges shown. Gross flow coverage: " ///
+        as result el(`summary',1,14) as text " / " as result el(`summary',1,13)
+    return matrix summary = `summary'
+end

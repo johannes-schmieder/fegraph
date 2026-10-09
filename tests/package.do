@@ -1,0 +1,20 @@
+version 16.0
+set more off
+capture mkdir build
+capture mkdir build/package-ado
+local root `"`c(pwd)'"'
+net set ado `"`root'/build/package-ado"'
+net install fegraph, from(`"`root'"') replace
+capture adopath - stata
+adopath ++ `"`root'/build/package-ado"'
+which fegraph
+findfile fegraph.mata
+findfile fegraph.sthlp
+fegraph, version
+assert `"`r(version)'"'=="0.1.0"
+fegraph, selftest
+assert r(passed)==1
+foreach view in firm bipartite ladder heatmap {
+    fegraph_example, type(`view') nodraw
+}
+display "FEGRAPH_PACKAGE_OK"

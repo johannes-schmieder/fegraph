@@ -2,6 +2,9 @@
 
 ## 0.1.0 — 2026-10-09 (private development)
 
+- Spread job-ladder links across deterministic above/below lanes, separating
+  overlapping rank intervals and reciprocal arrows. Clip along each curve for
+  visible arrowheads; retain supplied coordinates and flow statistics.
 - Implement firm networks, worker-firm match graphs, job ladders and flow heatmaps.
 - Match ferank's positional panel/edge interface, flow weights, endpoint attributes,
   maxgap default and selected-sample adjacency; add optional original adjacency.

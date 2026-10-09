@@ -49,6 +49,12 @@ Replace these example variable names with yours. `ferank` percentiles increase
 with attractiveness, so they work directly in `order()`. For raw ranks (1 is
 best), add `descending`. Effects/ranks are never estimated by `fegraph`.
 
+Job ladders automatically spread links across curved lanes above and below
+firms. Short links use inner lanes and conflicting links use separate lanes;
+reciprocal gross flows use opposite sides. Arc placement has no economic meaning:
+arrowheads still show movement, while firm positions and flow statistics stay fixed.
+No additional option is needed.
+
 ## Prepared-flow syntax
 
 ```stata

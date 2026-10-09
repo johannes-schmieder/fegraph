@@ -581,10 +581,98 @@ real colvector fegraph__colorbins(real colvector v, real scalar signedscale, rea
     else out[ix]=rowmax((J(rows(ix),1,1),rowmin((J(rows(ix),1,7),1:+floor(7*(v[ix]:-lo)/(hi-lo))))))
     return(out)
 }
+// Assign short links first, reusing a lane only for disjoint rank intervals.
+// Side is a routing choice, independent of movement direction or effect sign.
+real colvector fegraph__ladderlanes(struct fegraph__graph scalar g, real colvector ei) {
+    real colvector lane,rank,ni,ix,lo,hi,p,conflict
+    real matrix ends,used
+    real scalar m,k,i,j,a,b,above,below,side,reverse,nabove,nbelow
+    transmorphic scalar lookup
+    m=rows(ei); lane=J(m,1,0)
+    if(!m) return(lane)
+    ni=fegraph__which((g.N[,1]:==0):&g.N[,9])
+    if(!rows(ni)) return(lane)
+    ni=ni[order((g.N[ni,(6,7)],ni),(1,2,3))]
+    rank=J(rows(g.N),1,0); rank[ni]=(1::rows(ni))
+    ends=g.E[ei,(1,2)]
+    ix=fegraph__which((rank[ends[,1]]:>0):&(rank[ends[,2]]:>0):&(ends[,1]:!=ends[,2]))
+    if(!rows(ix)) return(lane)
+    lo=rowmin((rank[ends[,1]],rank[ends[,2]])); hi=rowmax((rank[ends[,1]],rank[ends[,2]]))
+    p=ix[order((hi[ix]-lo[ix],lo[ix],hi[ix],ends[ix,.]),(1,2,3,4,5))]
+    lookup=asarray_create("real",2)
+    for(i=1;i<=m;i++) asarray(lookup,ends[i,.],i)
+    nabove=0; nbelow=0
+    for(k=1;k<=rows(p);k++) {
+        i=p[k]; a=ends[i,1]; b=ends[i,2]
+        // Touching intervals conflict too: separate arrows at shared endpoints.
+        conflict=fegraph__which((lane:!=0):&(lo:<=hi[i]):&(hi:>=lo[i]))
+        used=J(m+1,2,0)
+        for(j=1;j<=rows(conflict);j++) {
+            reverse=lane[conflict[j]]
+            used[abs(reverse),fegraph__choose(reverse>0,1,2)]=1
+        }
+        above=1; below=1
+        while(used[above,1]) above++
+        while(used[below,2]) below++
+        side=fegraph__choose(above<below | (above==below & nabove<=nbelow),1,-1)
+        // Reciprocal gross arrows always use opposite sides of the same chord.
+        if(asarray_contains(lookup,(b,a))) {
+            reverse=lane[asarray(lookup,(b,a))]
+            if(reverse!=0) side=-sign(reverse)
+        }
+        lane[i]=side*fegraph__choose(side>0,above,below)
+        if(side>0) nabove++
+        else nbelow++
+    }
+    return(lane)
+}
+
+real rowvector fegraph__bezier(real rowvector a, real rowvector c, real rowvector b, real scalar t) {
+    return((1-t)^2*a+2*(1-t)*t*c+t^2*b)
+}
+
+// Work in normalized plot coordinates. Clip along the curved path, so its
+// terminal segment points toward the destination instead of past its marker.
+real matrix fegraph__ladderpath(real rowvector a, real rowvector b, real scalar lane, real scalar ra, real scalar rb) {
+    real rowvector delta,normal,c,point
+    real matrix path
+    real scalar d,bend,orient,left,right,t,ta,tb,i,j,radius
+    delta=b-a; d=sqrt(sum(delta:^2))
+    if(d<1e-10) fegraph__fail("connected displayed nodes share coordinates; use rank bins or distinct coordinates")
+    orient=1
+    if(delta[1]<0 | (delta[1]==0 & delta[2]<0)) orient=-1
+    normal=orient*(-delta[2],delta[1])/d
+    bend=.20+.16*d+.16*sqrt(abs(lane)-1)
+    c=(a+b)/2+sign(lane)*bend*normal
+    ta=0; tb=1
+    for(j=1;j<=2;j++) {
+        radius=fegraph__choose(j==1,ra,rb)
+        if(radius<=0) continue
+        // Ladder plots are wider than tall; use an elliptical marker clearance.
+        point=fegraph__bezier(a,c,b,.5)
+        if(j==1) point=point-a
+        else point=point-b
+        radius=min((radius,.8*sqrt(sum((point:*(1,.4)):^2))))
+        left=0; right=.5
+        for(i=1;i<=30;i++) {
+            t=(left+right)/2
+            if(j==1) point=fegraph__bezier(a,c,b,t)-a
+            else point=fegraph__bezier(a,c,b,1-t)-b
+            if(sqrt(sum((point:*(1,.4)):^2))<radius) left=t
+            else right=t
+        }
+        if(j==1) ta=(left+right)/2
+        else tb=1-(left+right)/2
+    }
+    path=J(25,2,.)
+    for(i=1;i<=25;i++) path[i,.]=fegraph__bezier(a,c,b,ta+(tb-ta)*(i-1)/24)
+    return(path)
+}
+
 void fegraph__plot(struct fegraph__graph scalar g) {
-    real colvector ix,ni,ei,nc,ns,ec,es,weight,kind,ord,vec,nodeclass
+    real colvector ix,ni,ei,nc,ns,ec,es,weight,kind,ord,vec,nodeclass,lanes
     real rowvector limits,clim,elim,wlim
-    real matrix out,paths
+    real matrix out,paths,curve
     string colvector labs
     real scalar n,m,i,j,a,b,r,q,x1,y1,x2,y2,cx,cy,x,y,px,py,sx,sy,dx,dy,d,bend,maxsize,maxweight,k,lo,hi,value,ra,rb
     transmorphic scalar lookup
@@ -650,6 +738,8 @@ void fegraph__plot(struct fegraph__graph scalar g) {
         ec=fegraph__colorbins(g.E[ei,9],1,elim,0)
         if(g.edgecolor=="none") ec=J(m,1,0)
         sx=max((max(out[,1])-min(out[,1]),.1)); sy=max((max(out[,2])-min(out[,2]),.1))
+        lanes=J(m,1,0)
+        if(g.type=="ladder") lanes=fegraph__ladderlanes(g,ei)
         out=out \ J(m*26,17,.)
         labs=labs \ J(m*26,1,"")
         for(i=1;i<=m;i++) {
@@ -658,18 +748,27 @@ void fegraph__plot(struct fegraph__graph scalar g) {
             x1=g.N[a,6]; y1=g.N[a,7]; x2=g.N[b,6]; y2=g.N[b,7]
             dx=(x2-x1)/sx; dy=(y2-y1)/sy; d=sqrt(dx^2+dy^2)
             if(d<1e-10) fegraph__fail("connected displayed nodes share coordinates; use rank bins or distinct coordinates")
-            // Small screen-relative insets leave visible heads adjacent to markers.
+            ra=0; rb=0
             if(g.directed) {
                 ra=min((.015+.014*nodeclass[a],d*.22)); rb=min((.025+.016*nodeclass[b],d*.24))
+            }
+            if(lanes[i]!=0) {
+                if(g.directed) { ra=.008+.006*nodeclass[a]; rb=.015+.007*nodeclass[b]; }
+                curve=fegraph__ladderpath((x1/sx,y1/sy),(x2/sx,y2/sy),lanes[i],ra,rb)
+            }
+            else {
+                // Preserve straight/reciprocal routing in other views and outside flows.
                 x1=x1+ra*sx*dx/d; y1=y1+ra*sy*dy/d
                 x2=x2-rb*sx*dx/d; y2=y2-rb*sy*dy/d
+                cx=(x1+x2)/2; cy=(y1+y2)/2
+                if(g.directed & !g.net & g.E[ei[i],6]>0) { cx=cx-.12*dy*sx; cy=cy+.12*dx*sy; }
             }
-            cx=(x1+x2)/2; cy=(y1+y2)/2
-            if(g.type=="ladder" & g.N[a,1]!=2 & g.N[b,1]!=2) cy=cy+fegraph__choose(x2>=x1,1,-1)*(.08+.12*abs(dx))*sy
-            else if(g.directed & !g.net & g.E[ei[i],6]>0) { cx=cx-.12*dy*sx; cy=cy+.12*dx*sy; }
             paths=J(26,17,.)
             for(j=1;j<=25;j++) {
-                q=(j-1)/24; x=(1-q)^2*x1+2*(1-q)*q*cx+q^2*x2; y=(1-q)^2*y1+2*(1-q)*q*cy+q^2*y2
+                if(lanes[i]!=0) { x=curve[j,1]*sx; y=curve[j,2]*sy; }
+                else {
+                    q=(j-1)/24; x=(1-q)^2*x1+2*(1-q)*q*cx+q^2*x2; y=(1-q)^2*y1+2*(1-q)*q*cy+q^2*y2
+                }
                 paths[j,(6,7,12,13)]=(x,y,ec[i],es[i])
                 if(j==25 & g.directed) paths[j,(8,9,10,11)]=(px,py,x,y)
                 px=x; py=y

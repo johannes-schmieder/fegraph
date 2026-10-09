@@ -40,7 +40,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     sources = [*manifest, *sorted((ROOT / 'tests').glob('*.do')), ROOT / 'examples' / 'command_gallery.do', ROOT / 'examples' / 'synthetic_panel.do', ROOT / 'fegraph.pkg', ROOT / 'stata.toc']
     receipt = {'source_sha256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}, 'suites': {}}
-    suites = [('smoke','FEGRAPH_SMOKE_OK'), ('contracts','FEGRAPH_CONTRACTS_OK'), ('advanced','FEGRAPH_ADVANCED_OK'), ('package','FEGRAPH_PACKAGE_OK'), ('gallery','FEGRAPH_GALLERY_OK')]
+    suites = [('smoke','FEGRAPH_SMOKE_OK'), ('contracts','FEGRAPH_CONTRACTS_OK'), ('advanced','FEGRAPH_ADVANCED_OK'), ('routing','FEGRAPH_ROUTING_OK'), ('package','FEGRAPH_PACKAGE_OK'), ('gallery','FEGRAPH_GALLERY_OK')]
     if args.fesim:
         suites.append(('integration', 'FEGRAPH_INTEGRATION_OK'))
     for suite, marker in suites:

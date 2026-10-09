@@ -49,6 +49,14 @@ worker-firm matches, with large firm nodes and small worker nodes. Ladders
 place a supplied level against the percentile of a supplied ordering attribute.
 Heatmaps show origin (y) by destination (x).
 
+{pstd}Ladder links use deterministic arcs on both sides of the line between
+firms. Short links receive inner lanes; overlapping rank intervals and links
+sharing endpoints use different lanes. Reciprocal gross arrows use opposite
+sides. Above/below placement is only visual routing: arrowheads show movement,
+and colors retain their supplied meaning. Equal-rank firms with distinct levels
+use lateral arcs. Firm coordinates, statistics and outside-state flows are unchanged.
+Dense graphs can still benefit from bins(), top() or minflow().
+
 {phang}{cmd:edge(moves|shared)} defaults to moves. Shared-worker graphs are
 undirected: a worker seen at A, B, C links all three pairs, even without an A-C
 move. Each worker counts once per pair. They require worker-firm data.

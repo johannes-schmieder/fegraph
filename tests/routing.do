@@ -76,7 +76,7 @@ generate double oo=floor(origin/2)
 generate double od=floor(destination/2)
 generate double lo=sin(origin)
 generate double ld=sin(destination)
-fegraph origin destination, type(ladder) order(oo od) level(lo ld) ///
+fegraph, origin(origin) destination(destination) type(ladder) order(oo od) level(lo ld) ///
     nodesize(equal) nodecolor(lo ld) edgecolor(effect) ///
     nodefile(build/tests/routing_nodes.dta) replace nodraw
 assert r(flow_total)==10 & r(N_shown_edges)==10
@@ -89,7 +89,7 @@ restore
 
 * Keep a gross-flow visual stress case alongside the ordinary net gallery.
 quietly do examples/synthetic_panel.do
-fegraph firmid, worker(workerid) time(time) type(ladder) order(psi) ///
+fegraph psi, firm(firmid) worker(workerid) time(time) type(ladder) ///
     nodecolor(psi) nonemployment(unemployed) outsidelabel(Unemployment) ///
     edgecolor(effect) name(routing_gross, replace)
 assert r(flow_total)==41

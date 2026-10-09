@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0 — 2026-10-09 (private development)
+
+- Move panel IDs into `worker()`/`firm()` and prepared-flow IDs into
+  `origin()`/`destination()`. Optional positional variables now supply firm scores.
+  Reject legacy ID calls with a migration message; this is a breaking interface change.
+- Use the score for ordering and default firm color/level, retaining explicit
+  overrides and `order()` as an alternative. Allow score-free network calls.
+- Define `bins(#)` using score-quantile cutpoints matching default Stata `xtile`
+  on one row per firm. Keep ties together and unemployment outside the bins;
+  retain explicit employment weighting and original nonempty quantile labels.
+- Return requested/actual bin counts and resolved score variables. Add independent
+  native-`xtile` comparisons, syntax contracts, migrated examples and help.
+
 ## 0.1.0 — 2026-10-09 (private development)
 
 - Spread job-ladder links across deterministic above/below lanes, separating

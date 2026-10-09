@@ -1,6 +1,6 @@
 # Validation and support
 
-Version 0.1.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
+Version 0.2.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
 Source targets Stata 16 syntax. No licensed Stata 16–18, Windows or Linux
 qualification is claimed. The runtime uses only official Stata and Mata.
 
@@ -25,6 +25,8 @@ tracked. A zero batch process exit code alone is insufficient.
 | `smoke.do` | All four graph types, known synthetic transition/match counts, explicit outside state, rank aggregation, graph/data exports |
 | `contracts.do` | Fractional/duplicate flows, zero/self rows, balanced net pairs, exact string IDs, full denominators under filtering, ego boundary mass, gap/unknown/outside distinctions, sample adjacency, shared workers, ties, bin means, no-edge graphs, duplicate-key failures, worker/firm ID collisions, and independently selectable width/color statistics |
 | `advanced.do` | More than 65,536 string workers, exact large numeric IDs, million-row aggregation, component-aware employment-weighted bins, external comparability groups, prepared exposures, paired net heatmap filtering, reproducible layouts, categorical colors, distinct-worker node sizes |
+| `interface.do` | Optional scores, explicit panel/endpoint IDs, attribute defaults/overrides, legacy-call rejection, qualifiers, outside-score missingness and state preservation |
+| `quantiles.do` | Native `xtile` reference comparisons with ties/skew/weights/descending scores, `collapse` bin means, worker-record multiplicity invariance, outside exclusion and move conservation |
 | `routing.do` | Above/below separation, shared-endpoint lanes, reciprocal arrows, input-order invariance, curved marker clearance, tied ranks, nonmonotone levels, unchanged node values/counts, and a gross-flow render |
 | `package.do` | `net install` into an isolated local ado directory, fresh-process loading of installed ado/Mata/help, installed selftest, all four installed examples |
 | `command_gallery.do` | Four figures written as PNG and PDF, with caller data restored; visual inspection of arrowheads, labels, legends and outside-state band |

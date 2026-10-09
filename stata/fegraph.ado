@@ -1,18 +1,21 @@
-*! fegraph 0.1.0 09oct2026
+*! fegraph 0.2.0 09oct2026
 program define fegraph, rclass
     version 16.0
+    // Options-only graph calls are valid; reserve only valid metadata calls.
     if substr(strtrim(`"`0'"'),1,1)=="," {
-        syntax , [VERSION SELFTEST]
-        if ("`version'"!="")+("`selftest'"!="")!=1 error 198
-        if "`selftest'"!="" {
-            quietly fegraph_example, nodraw
-            assert r(flow_total)==40
-            return scalar passed=1
-            di as result "fegraph selftest passed"
+        capture syntax , [VERSION SELFTEST]
+        if !_rc {
+            if ("`version'"!="")+("`selftest'"!="")!=1 error 198
+            if "`selftest'"!="" {
+                quietly fegraph_example, nodraw
+                assert r(flow_total)==40
+                return scalar passed=1
+                di as result "fegraph selftest passed"
+            }
+            else di as text "fegraph 0.2.0"
+            return local version "0.2.0"
+            exit
         }
-        else di as text "fegraph 0.1.0"
-        return local version "0.1.0"
-        exit
     }
     tempname work model
     local caller "`c(frame)'"
@@ -27,8 +30,9 @@ end
 
 program define fegraph__run, rclass
     version 16.0
-    syntax varlist(min=1 max=2) [if] [in], _WORK(name) _MODEL(name) ///
-        [WORKER(varname) TIME(varname numeric) FLOW(varname numeric) ///
+    syntax [varlist(default=none max=2)] [if] [in], _WORK(name) _MODEL(name) ///
+        [WORKER(varname) FIRM(varname) ORIGIN(varname) DESTination(varname) ///
+        TIME(varname numeric) FLOW(varname numeric) ///
         TYPE(string) EDGE(string) NET MAXGAP(real 1) SAMPLE(string) ///
         CATEGORICAL NODEColor(varlist numeric) NODESize(string) ORDER(varlist numeric) ///
         LEVEL(varlist numeric) LABEL(varlist) WORKERCOLOR(varname numeric) ///
@@ -65,9 +69,9 @@ program define fegraph__run, rclass
         exit 198
     }
     if `maxgap'<=0 | missing(`maxgap') | `minflow'<0 | missing(`minflow') | ///
-        `bins'<0 | `top'<0 | `steps'<1 | `iterations'<1 | `iterations'>2000 | ///
+        `bins'<0 | `bins'>2000 | `top'<0 | `steps'<1 | `iterations'<1 | `iterations'>2000 | ///
         `maxnodes'<1 | `maxnodes'>2000 | `maxedges'<1 | `maxedges'>20000 {
-        di as error "invalid numerical control; maxnodes() <= 2000 and maxedges() <= 20000"
+        di as error "invalid numerical control; bins()/maxnodes() <= 2000 and maxedges() <= 20000"
         exit 198
     }
     if `sizemax'<0 | missing(`sizemax') | `widthmax'<0 | missing(`widthmax') error 198
@@ -97,12 +101,53 @@ program define fegraph__run, rclass
             exit 198
         }
     }
-    local nvar : word count `varlist'
-    local panel = (`nvar'==1)
-    if `panel' & "`worker'"=="" {
-        di as error "panel input requires worker()"
+    // Normalize the public score/ID interface for the data engine.
+    local firmscore `varlist'
+    local nscore : word count `firmscore'
+    if "`firm'`worker'"!="" & "`origin'`destination'"!="" {
+        di as error "choose worker()/firm() panel input or origin()/destination() flow input"
         exit 198
     }
+    if "`firm'"!="" {
+        if "`worker'"=="" {
+            di as error "panel input requires worker() and firm()"
+            exit 198
+        }
+        local panel 1
+        local varlist `firm'
+        local nvar 1
+    }
+    else if "`origin'`destination'"!="" {
+        if "`origin'"=="" | "`destination'"=="" {
+            di as error "prepared flows require both origin() and destination()"
+            exit 198
+        }
+        local panel 0
+        local varlist `origin' `destination'
+        local nvar 2
+    }
+    else {
+        di as error "fegraph 0.2: put IDs in worker()/firm(), or origin()/destination(); positional variables now supply firm scores"
+        exit 198
+    }
+    if `nscore'>0 & `nscore'!=`nvar' {
+        di as error "supply one positional firm score for panels, or two endpoint scores for prepared flows"
+        exit 198
+    }
+    if `nscore'>0 {
+        confirm numeric variable `firmscore'
+        if "`order'"!="" & "`order'"!="`firmscore'" {
+            di as error "positional scores and order() conflict; specify one ordering"
+            exit 198
+        }
+        local order `firmscore'
+    }
+    local firmscore `order'
+    if "`firmscore'"!="" {
+        if "`nodecolor'"=="" & "`type'"!="heatmap" local nodecolor `firmscore'
+        if "`level'"=="" local level `firmscore'
+    }
+    local actualbins 0
     if `panel' & "`time'"=="" & "`type'"!="bipartite" & "`edge'"!="shared" {
         di as error "directed panel flows require time()"
         exit 198
@@ -142,11 +187,11 @@ program define fegraph__run, rclass
         exit 198
     }
     if "`type'"=="ladder" & "`order'"=="" {
-        di as error "ladder requires order(); supply effects, scores or increasing percentiles"
+        di as error "ladder requires a firm score before the comma or in order()"
         exit 198
     }
     if `bins'>0 & "`order'"=="" {
-        di as error "bins() requires order()"
+        di as error "bins() requires a firm score before the comma or in order()"
         exit 198
     }
     if "`type'"=="ladder" & "`level'"=="" local level `order'
@@ -269,9 +314,13 @@ program define fegraph__run, rclass
         local field : word `k' of `fields'
         return scalar `field' = el(`summary',1,`k')
     }
+    return scalar N_bins = `actualbins'
+    return scalar bins_requested = `bins'
+    return local score "`firmscore'"
+    if `bins'>0 di as text "Quantile bins: " as result `actualbins' as text " nonempty / " as result `bins' as text " requested"
     return local type "`type'"
     return local input = cond(`panel',"panel","edge")
-    return local version "0.1.0"
+    return local version "0.2.0"
     return local sample "`sample'"
     di as text "fegraph: " as result el(`summary',1,11) as text " nodes; " ///
         as result el(`summary',1,12) as text " edges shown. Gross flow coverage: " ///

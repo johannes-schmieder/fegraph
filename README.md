@@ -4,10 +4,10 @@
 heatmaps in Stata from simulated or real linked employer–employee data.
 
 It accepts firm effects, ranks and other attributes supplied by the user. It
-works alongside `fesim` and `ferank`, using the same panel/prepared-flow syntax,
-without requiring either package. The runtime uses official Stata and Mata only.
+works alongside `fesim` and `ferank`, with explicit `worker()`/`firm()` IDs
+as in `fevc` and `feset`, without requiring any of these packages. The runtime uses official Stata and Mata only.
 
-**Version 0.1.0, private development package.** Source targets Stata 16+; licensed
+**Version 0.2.0, private development package.** Source targets Stata 16+; licensed
 execution is qualified on macOS Stata/MP 19. Other versions/platforms remain
 unqualified. There is no SSC release or selected redistribution license yet.
 
@@ -28,32 +28,33 @@ is replaced. For development from the repository root, `adopath ++ stata` works.
 ## Panel syntax
 
 ```stata
-* Firms: arrow width shows flows, color shows supplied firm effects.
-fegraph firmid, worker(workerid) time(year) ///
-    nodecolor(psi_hat) net name(firm_network, replace)
+* The optional first variable is the firm score, not the firm ID.
+fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
+    type(firm) net name(firm_network, replace)
 
-* Workers and firms, with one edge per distinct match.
-fegraph firmid, worker(workerid) time(year) type(bipartite) ///
-    nodecolor(psi_hat)
+* A match graph needs no score or time variable.
+fegraph, worker(workerid) firm(firmid) type(bipartite)
 
-* Firm rank and firm wage effect are separate inputs.
-fegraph firmid, worker(workerid) time(year) type(ladder) ///
-    order(rank_pct) level(psi_hat) nodecolor(psi_hat) bins(10)
+* Rank by revealed preference, plot the supplied wage effect vertically.
+fegraph rank_pct, worker(workerid) firm(firmid) time(year) type(ladder) ///
+    level(psi_hat) nodecolor(psi_hat) bins(10)
 
-* Large-data alternative: destination shares by origin rank bin.
-fegraph firmid, worker(workerid) time(year) type(heatmap) ///
-    order(psi_hat) bins(10) statistic(share)
+* Ten score-quantile groups and destination shares.
+fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
+    type(heatmap) bins(10) statistic(share)
 ```
 
-Replace these example variable names with yours. `ferank` percentiles increase
-with attractiveness, so they work directly in `order()`. For raw ranks (1 is
-best), add `descending`. Effects/ranks are never estimated by `fegraph`.
+The score supplies ordering and default firm color/ladder height. `level()` and
+`nodecolor()` can specify different attributes. Heatmap color always shows flows.
+`order()` is an equivalent explicit alternative to the positional score;
+conflicting specifications are errors. Scores must be numeric and constant
+within firm among observed values. They are never estimated or implicitly
+averaged over worker observations. `ferank` scores and increasing percentiles
+work directly; add `descending` for raw ranks where 1 is best.
 
-Job ladders automatically spread links across curved lanes above and below
-firms. Short links use inner lanes and conflicting links use separate lanes;
-reciprocal gross flows use opposite sides. Arc placement has no economic meaning:
-arrowheads still show movement, while firm positions and flow statistics stay fixed.
-No additional option is needed.
+`time()` is required for directed panel flows; it may be omitted for match/shared
+views. Job ladders automatically route arrows on both sides of the firm-to-firm
+chord, with separate lanes for conflicting links and reciprocal flows.
 
 ## Prepared-flow syntax
 
@@ -67,16 +68,29 @@ input origin destination moves effect_o effect_d
 3 2   5  .3 .1
 end
 
-fegraph origin destination, flow(moves) net ///
-    nodecolor(effect_o effect_d) edgecolor(effect) ///
-    layout(circle) name(net_flows, replace)
+fegraph effect_o effect_d, origin(origin) destination(destination) ///
+    flow(moves) net edgecolor(effect) layout(circle)
 restore
 ```
 
-`flow()` retains its `ferank` meaning: a nonnegative count/weight variable.
-Use `net` for net flows. Endpoint attributes take **two variables, origin then
-destination**, matching `ferank`'s output convention. Without `flow()`, each
-row contributes one move. Numeric and string IDs are supported.
+The optional positional scores and supplied endpoint attributes take two
+variables, origin then destination. The ID options identify the endpoints.
+`flow()` retains its `ferank` meaning: a nonnegative count/weight variable;
+without it, each row contributes one move. `net` selects net flows. Numeric
+and string IDs are supported. Panel and prepared-flow ID options cannot mix.
+
+## Migrating from 0.1
+
+```stata
+* Old: fegraph firmid, worker(workerid) time(year) order(psi_hat) type(ladder)
+fegraph psi_hat, worker(workerid) firm(firmid) time(year) type(ladder)
+
+* Old: fegraph origin destination, flow(moves)
+fegraph, origin(origin) destination(destination) flow(moves)
+```
+
+Version 0.2 rejects old positional-ID calls with a migration message. Restart
+Stata and reinstall when upgrading. Positional variables now supply scores.
 
 ## Choose the economic meaning
 
@@ -106,7 +120,21 @@ The default `maxgap(1)` and selected-sample adjacency follow `ferank`. Use
 an excluded observation. Duplicate worker-time keys are errors; choose a main
 job upstream when workers hold multiple simultaneous jobs.
 
-For large data, use rank bins, `component()`, `ego()`/`steps()`, `minflow()` or
+`bins(10)` forms score deciles, using **one observation per selected firm** by
+default. `bins(4)` forms quartiles; `bins(1)` pools all firms; `bins(0)` retains
+individual firms. This works for ladders and heatmaps. The cutpoint convention
+matches Stata's default [`xtile`](https://www.stata.com/manuals/dpctile.pdf).
+Equal scores stay together and boundary ties enter the lower bin. Empty bins
+are omitted (labels retain their quantile numbers); `r(N_bins)` reports the
+actual count, which may be smaller than requested. Unemployment stays separate.
+
+`binweight(employment)` explicitly requests weighted quantiles and weighted bin
+means using node sizes (mean employment by default for panels). Firm scores,
+levels and colors are averaged within bins; sizes/exposures and gross moves
+are summed. Bin boundaries are computed after firm selection and before edge
+filtering. There is no automatic binning by equal-width score intervals.
+
+For large data, use quantile bins, `component()`, `ego()`/`steps()`, `minflow()` or
 `top()`. The default keeps all weak components. Graphs report displayed gross
 flow coverage, boundary flow and within-bin movement. Probabilities and mover
 shares retain full denominators after display filtering. Bins aggregate gross
@@ -126,7 +154,7 @@ codes. Choose common populations/weights when deriving bins across figures.
 ## Output and customization
 
 ```stata
-fegraph firmid, worker(workerid) time(year) nodecolor(psi_hat) ///
+fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
     nodefile("nodes.dta") edgefile("edges.dta") mapfile("mapping.dta") ///
     saving("network.gph") replace ///
     graphopts(title("Worker mobility") legend(position(6)))

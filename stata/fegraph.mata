@@ -25,7 +25,7 @@ real colvector fegraph__which(real matrix x) {
 transmorphic matrix fegraph__pick(transmorphic matrix x, real matrix mask) {
     return(x[fegraph__which(mask),.])
 }
-real scalar fegraph__version() return(100)
+real scalar fegraph__version() return(200)
 void fegraph__fail(string scalar msg) {
     errprintf("fegraph: %s\n",msg)
     _error(198)
@@ -146,8 +146,42 @@ void fegraph__select(struct fegraph__graph scalar g) {
         g.N[,9]=seen :| (g.N[,1]:==2)
     }
 }
+// Default Stata percentile cutpoints on sorted firm scores, then right-closed
+// xtile categories. Positive weights determine cutpoints; ties never split.
+real colvector fegraph__quantiles(real colvector score, real colvector weight, real scalar b) {
+    real colvector positive,x,w,cw,cuts,out
+    real scalar n,i,k,target,total,tol,previous
+    n=rows(score); out=J(n,1,1)
+    if(b<=1) return(out)
+    positive=fegraph__which(weight:>0)
+    x=score[positive]; w=weight[positive]; cw=runningsum(w)
+    total=cw[rows(cw)]; tol=1e-14*total
+    cuts=J(b-1,1,.); i=1
+    for(k=1;k<b;k++) {
+        target=total*(k/b)
+        while(i<rows(cw)) {
+            if(cw[i]>target+tol) break
+            i++
+        }
+        cuts[k]=x[i]
+        if(i>1) {
+            previous=cw[i-1]
+            if(abs(previous-target)<=tol) cuts[k]=x[i-1]/2+x[i]/2
+        }
+    }
+    k=1
+    for(i=1;i<=n;i++) {
+        while(k<b) {
+            if(score[i]<=cuts[k]) break
+            k++
+        }
+        out[i]=k
+    }
+    return(out)
+}
+
 void fegraph__bins(struct fegraph__graph scalar g) {
-    real colvector ix,p,weights,ranks,map,sel,counts
+    real colvector ix,p,weights,ranks,map,sel,counts,score,qbin,qids
     real scalar i,j,k,n,b,total,cum,lo,hi,bin,nb,w
     real matrix nn,ee
     string colvector ids,labels
@@ -163,6 +197,12 @@ void fegraph__bins(struct fegraph__graph scalar g) {
     }
     total=sum(weights); cum=0; ranks=J(n,1,0); map=(1::rows(g.N))
     b=fegraph__opt("bins"); bin=0; nb=0
+    score=g.N[ix,4]
+    if(fegraph__flag("descending")) score=-score
+    if(b>0) {
+        qbin=fegraph__quantiles(score,weights,b)
+        qids=uniqrows(qbin)
+    }
     lo=1
     while(lo<=n) {
         hi=lo
@@ -172,7 +212,7 @@ void fegraph__bins(struct fegraph__graph scalar g) {
         if(st_local("binweight")=="firm") ranks[lo..hi]=J(hi-lo+1,1,fegraph__choose(n==1,50,100*((lo+hi)/2-1)/max((1,n-1))))
         else ranks[lo..hi]=J(hi-lo+1,1,100*(cum+w/2)/total)
         if(b>0) {
-            j=min((b,1+floor(b*(cum+w/2)/total)))
+            j=qbin[lo]
             if(j!=bin) { nb++; bin=j; }
             map[ix[lo..hi]]=J(hi-lo+1,1,nb)
         }
@@ -180,6 +220,7 @@ void fegraph__bins(struct fegraph__graph scalar g) {
     }
     g.N[ix,6]=ranks
     if(b==0) return
+    st_local("actualbins",strofreal(nb))
     // Selected firms become bins; unselected firms remain hidden nodes, preserving boundary denominators.
     sel=fegraph__which(!((g.N[,1]:==0):&g.N[,9]))
     for(i=1;i<=rows(sel);i++) map[sel[i]]=nb+i
@@ -194,7 +235,7 @@ void fegraph__bins(struct fegraph__graph scalar g) {
             sel=fegraph__which(g.N[counts,j]:<.)
             if(rows(sel)) nn[k,j]=sum(g.N[counts[sel],j]:*weights[p[sel]])/sum(weights[p[sel]])
         }
-        ids[k]="bin:"+strofreal(k); labels[k]="Bin "+strofreal(k)
+        ids[k]="bin:"+strofreal(qids[k]); labels[k]="Bin "+strofreal(qids[k])
     }
     sel=fegraph__which(!((g.N[,1]:==0):&g.N[,9]))
     for(i=1;i<=rows(sel);i++) {
@@ -557,7 +598,7 @@ void fegraph__edges(struct fegraph__graph scalar g) {
 void fegraph__mapping(struct fegraph__graph scalar g) {
     fegraph__write(g.mapping,("node"))
     fegraph__strings("original_id",g.original)
-    fegraph__strings("node_id",g.ids[g.mapping])
+    fegraph__strings("node_id",g.ids[g.mapping,.])
 }
 real colvector fegraph__colorbins(real colvector v, real scalar signedscale, real rowvector limits, real scalar categorical) {
     real colvector out,ix,unique

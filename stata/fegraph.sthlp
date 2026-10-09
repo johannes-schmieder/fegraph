@@ -1,27 +1,44 @@
 {smcl}
-{* *! version 0.1.0 09oct2026}{...}
+{* *! version 0.2.0 09oct2026}{...}
 {title:Title}
 {pstd}{cmd:fegraph} {hline 2} Graphs for linked worker-firm data
 
 {title:Syntax}
-{pstd}Worker-period panel (same positional firm and worker/time convention as {cmd:ferank}):
-{p 8 16 2}{cmd:fegraph} {it:firm} [{help if}] [{help in}],
-{cmd:worker(}{it:workerid}{cmd:)} [{cmd:time(}{it:time}{cmd:)} {it:options}]
+{pstd}Worker-period panel; the optional positional variable is a supplied firm score:
+{p 8 16 2}{cmd:fegraph} [{it:firmscore}] [{help if}] [{help in}],
+{cmd:worker(}{it:workerid}{cmd:)} {cmd:firm(}{it:firmid}{cmd:)}
+[{cmd:time(}{it:time}{cmd:)} {it:options}]
 
-{pstd}Prepared moves or aggregated flows:
-{p 8 16 2}{cmd:fegraph} {it:origin destination} [{help if}] [{help in}],
+{pstd}Prepared moves or aggregated flows; optional scores are origin then destination:
+{p 8 16 2}{cmd:fegraph} [{it:score_origin score_destination}] [{help if}] [{help in}],
+{cmd:origin(}{it:origin_id}{cmd:)} {cmd:destination(}{it:destination_id}{cmd:)}
 [{cmd:flow(}{it:count}{cmd:)} {it:options}]
 
-{pstd}Each row contributes one move if {cmd:flow()} is omitted. It retains its
-{cmd:ferank} meaning: an input weight, never a gross/net selector. Use {cmd:net}
-to request net flows. Weights may be fractional; Stata weight syntax is not accepted.
+{pstd}Scores are numeric firm attributes supplied externally, not variables to
+estimate or average over workers. They must be constant within firm among observed
+values. They set the ordering and default {cmd:level()} and {cmd:nodecolor()};
+explicit level/color options override those defaults. Heatmap color always
+represents flows. Networks may omit a score; ladders and quantile bins require
+one. {cmd:order()} is an equivalent explicit alternative. Conflicting positional
+scores and order() are errors. Higher scores rank firms higher; {cmd:descending}
+handles ordinal ranks where 1 is best. A force layout does not position firms by rank.
+
+{pstd}{cmd:worker()} and {cmd:firm()} identify panel IDs. Directed panel flows
+require {cmd:time()}; match/shared-worker graphs may omit it. Prepared inputs use
+both {cmd:origin()} and {cmd:destination()}; do not mix panel and endpoint ID options.
+Each prepared row contributes one move if {cmd:flow()} is omitted. flow() retains
+its ferank meaning: an input weight, never a gross/net selector. Use {cmd:net}
+for net flows. Weights may be fractional; Stata weight syntax is not accepted.
 
 {pstd}Firm/worker IDs may be numeric or string. Prepared endpoints must have the
 same broad storage type. {cmd:nodecolor()}, {cmd:nodesize()} with variables,
 {cmd:order()}, {cmd:level()}, {cmd:label()} and {cmd:effectgroup()} take one
-variable for panels or two variables for flows, origin first and destination second.
-Firm attributes must be constant within firm among their observed values.
-Contradictions are errors. All data and estimation results remain unchanged.
+variable for panels or two for flows, origin first and destination second.
+All data and estimation results remain unchanged.
+
+{pstd}{bf:Migration from 0.1:} move the positional firm ID into firm(), or move
+prepared endpoint IDs into origin()/destination(). Positional variables now mean
+scores. Old ID-based calls are rejected with a migration message rather than guessed.
 
 {title:Quick start}
 {pstd}Run self-contained examples, restoring your data:
@@ -32,12 +49,12 @@ Contradictions are errors. All data and estimation results remain unchanged.
 
 {pstd}With your panel:
 {cmd}
-    fegraph firmid, worker(workerid) time(year) nodecolor(psi_hat) net
-    fegraph firmid, worker(workerid) time(year) type(bipartite)
-    fegraph firmid, worker(workerid) time(year) type(ladder) ///
-        order(rank_pct) level(psi_hat) nodecolor(psi_hat) bins(10)
-    fegraph firmid, worker(workerid) time(year) type(heatmap) ///
-        order(psi_hat) bins(10) statistic(share)
+    fegraph psi_hat, worker(workerid) firm(firmid) time(year) net
+    fegraph, worker(workerid) firm(firmid) type(bipartite)
+    fegraph rank_pct, worker(workerid) firm(firmid) time(year) type(ladder) ///
+        level(psi_hat) nodecolor(psi_hat) bins(10)
+    fegraph psi_hat, worker(workerid) firm(firmid) time(year) type(heatmap) ///
+        bins(10) statistic(share)
 {txt}
 {pstd}These variable names are placeholders. Supply estimated effects or ranks
 from outside fegraph. No estimation is performed.
@@ -154,21 +171,33 @@ exposure repeated on origin rows. Total departures cannot exceed exposure.
 Self-moves in prepared input and same-firm continuations in panels are omitted.
 Consequently probability rows need not sum to one.
 
-{phang}{cmd:order(}{it:vars}{cmd:)} supplies the ladder ordering or heatmap/bin
-ordering. Higher values normally receive higher percentiles. Use {cmd:descending}
-for raw ferank ranks, where rank 1 is best, or use its increasing percentile.
-Tied values get a common midrank. Ordering is separate from {cmd:level(}{it:vars}{cmd:)},
-which supplies ladder height and defaults to order. Missing ordering/height among
-selected ladder firms is an error. Coincident connected nodes require binning.
+{phang}{cmd:order(}{it:vars}{cmd:)} is the explicit alternative to the positional
+firm score. With either form, higher scores normally receive higher percentiles.
+Use {cmd:descending} for raw ferank ranks where 1 is best. Tied scores receive
+a common midrank. Ordering is separate from {cmd:level(}{it:vars}{cmd:)}, which
+supplies ladder height and defaults to the score. Selected ladder/binned firms
+need known scores; ladder firms also need known heights. Missing scores on an
+explicit outside state are allowed. Coincident connected nodes require binning.
 
-{phang}{cmd:bins(}{it:#}{cmd:)} aggregates selected firms for ladder/heatmap views;
-0 (default) retains firms. Ties remain together and may yield fewer bins.
-{cmd:binweight(firm|employment)} defaults to equal firm weights; employment uses
-nodesize values. Boundaries derive from weighted cumulative order. Heights and
-colors are weighted firm means; size and exposure are summed. Gross flows are
-summed before netting, rates or thresholds. Within-bin moves remain in edge
-exports and heatmaps; network ladders omit self-arrows but report their mass.
-For comparisons, use a common analysis population/weights when deriving bins.
+{phang}{cmd:bins(}{it:#}{cmd:)} combines firms into {it:#} score-quantile bins
+for ladder/heatmap views, analogous to binned scatterplots. Default 0 retains
+individual firms; 1 pools all selected firms. Maximum requested bins is 2000,
+subject to the graph's displayed-node limits. Quantiles use one observation per
+selected firm, not one per worker-period record. Cutpoints follow Stata's default
+{help xtile} definition; a score equal to a cutpoint goes in the lower bin.
+Ties are never split, so unequal sizes and fewer nonempty bins are possible.
+Empty bins are omitted, retaining original quantile numbers in labels/IDs.
+Unemployment is outside the score distribution and remains a separate node.
+
+{phang}{cmd:binweight(firm|employment)} defaults to equal firm weights. Employment
+uses nodesize values for weighted quantiles and bin means; by default these are
+mean employment for panels. Zero weights do not determine cutpoints; an all-zero
+bin is an error. Bin height, ordering, color and ladder percentile are weighted
+means of the member-firm values; size and exposure are summed. Quantiles are
+computed after component/ego selection but before edge thresholds. Gross flows
+are summed before netting, rates or thresholds. Within-bin moves remain in
+exports and heatmaps; ladders omit self-arrows and report their mass. Repeated
+same-firm observations are not moves. Use a common sample/weights for comparisons.
 
 {phang}{cmd:effectgroup(}{it:vars}{cmd:)} supplies external comparability groups,
 such as ferank component IDs. Selected firms must have a single known group.
@@ -257,7 +286,9 @@ gross mass minus summed positive net differences (including within-bin mass).
 N_shown_edges counts displayed original gross pairs in net heatmaps, not all
 rendered cells. Captions report coverage; there is no silent component selection.
 
-{pstd}Macros: r(type), r(input), r(sample), r(version). {cmd:fegraph, version}
+{pstd}Additional scalars: r(N_bins) is the number of nonempty firm bins (0 without
+aggregation); r(bins_requested) is the requested count. Macros: r(type), r(input),
+r(sample), r(score) (resolved score variables), r(version). {cmd:fegraph, version}
 reports the version. {cmd:fegraph, selftest} runs a small preserving smoke test
 and returns r(passed)=1 on success. It creates a named example graph.
 

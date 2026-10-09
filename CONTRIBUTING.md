@@ -12,7 +12,9 @@ Stata/Mata; do not require a compiler or a third-party graph package.
 - `fegraph_example.ado`: preserving examples and the installation selftest.
 - `fegraph.sthlp`: public interface and statistical definitions.
 
-Read the help and validation note before changing behavior. Keep caller data,
+Read the help and validation note before changing behavior. Positional inputs are
+firm scores; IDs belong in worker()/firm() or origin()/destination(). Quantile
+contracts compare with official xtile on one observation per firm. Keep caller data,
 estimates and RNG unchanged. Preserve gross flow counts and full denominators;
 never silently alter the graph to make it look more convenient. New options
 must have a statistical definition and relevant contract checks. Update help,

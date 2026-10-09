@@ -1,8 +1,52 @@
 {smcl}
-{* *! version 0.2.0 09oct2026}{...}
+{* *! version 0.3.0 09oct2026}{...}
+{.-}
+help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
+{.-}
+
 {title:Title}
 {pstd}{cmd:fegraph} {hline 2} Graphs for linked worker-firm data
 
+
+{pstd}
+{help fegraph##quickstart:Example} | {help fegraph##syntax:Syntax} |
+{help fegraph##views:Graph types} | {help fegraph##sample:Sample and unemployment} |
+{help fegraph##attributes:Appearance}
+
+{pstd}
+{help fegraph##bins:Scores and bins} | {help fegraph##selection:Selection} |
+{help fegraph##examples:Runnable examples} | {help fegraph##reports:DGP reports} |
+{help fegraph##output:Output} | {help fegraph##stored:Stored results}
+
+{marker quickstart}
+{title:Start with a firm graph}
+{pstd}The following complete example draws a firm network, colored by a supplied
+wage effect. Worker and firm identifiers belong in options; the variable before
+the comma supplies the score. Click below to run it and restore your original data.
+
+{cmd}{...}
+        preserve
+{* example_start - firmgraph}{...}
+        clear
+        set obs 120
+        generate workerid = ceil(_n/6)
+        generate year = mod(_n-1,6)+1
+        generate firmid = mod(floor((workerid-1)/3)+floor((year-1)/2),6)+1
+        generate byte unemployed = year==3 & mod(workerid,4)==0
+        replace firmid = . if unemployed
+        generate psi = (firmid-3.5)/10
+        fegraph psi, worker(workerid) firm(firmid) time(year) ///
+            type(firmgraph) nonemployment(unemployed) outsidelabel(Unemployment) ///
+            net name(fegraph_firmgraph, replace)
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}
+{stata fegraph_run firmgraph using fegraph.sthlp:Click to run this example}
+(your original data are restored).
+
+{marker syntax}
 {title:Syntax}
 {pstd}Worker-period panel; the optional positional variable is a supplied firm score:
 {p 8 16 2}{cmd:fegraph} [{it:firmscore}] [{help if}] [{help in}],
@@ -40,27 +84,11 @@ All data and estimation results remain unchanged.
 prepared endpoint IDs into origin()/destination(). Positional variables now mean
 scores. Old ID-based calls are rejected with a migration message rather than guessed.
 
-{title:Quick start}
-{pstd}Run self-contained examples, restoring your data:
-{p 8}{stata fegraph_example, type(firm):fegraph_example, type(firm)}
-{p 8}{stata fegraph_example, type(bipartite):fegraph_example, type(bipartite)}
-{p 8}{stata fegraph_example, type(ladder):fegraph_example, type(ladder)}
-{p 8}{stata fegraph_example, type(heatmap):fegraph_example, type(heatmap)}
-
-{pstd}With your panel:
-{cmd}
-    fegraph psi_hat, worker(workerid) firm(firmid) time(year) net
-    fegraph, worker(workerid) firm(firmid) type(bipartite)
-    fegraph rank_pct, worker(workerid) firm(firmid) time(year) type(ladder) ///
-        level(psi_hat) nodecolor(psi_hat) bins(10)
-    fegraph psi_hat, worker(workerid) firm(firmid) time(year) type(heatmap) ///
-        bins(10) statistic(share)
-{txt}
-{pstd}These variable names are placeholders. Supply estimated effects or ranks
-from outside fegraph. No estimation is performed.
-
+{marker views}
 {title:Views and edge definitions}
-{phang}{cmd:type(firm|bipartite|ladder|heatmap)} selects the view; default {cmd:firm}.
+{phang}{cmd:type(firmgraph|bipartite|ladder|heatmap)} selects the view; default {cmd:firmgraph}.
+The old spelling {cmd:type(firm)} remains a compatibility alias; r(type)
+returns firmgraph for either spelling.
 Firm networks show firms and directed moves. Bipartite graphs show distinct
 worker-firm matches, with large firm nodes and small worker nodes. Ladders
 place a supplied level against the percentile of a supplied ordering attribute.
@@ -88,6 +116,7 @@ pairs disappear; raw gross counts remain in the saved edge table. Net applies
 to outside-state flows too. It cannot be combined with wage-change edge styling
 or normalized statistics. Shared-worker and bipartite graphs are undirected counts.
 
+{marker sample}
 {title:Panel sample and outside states}
 {phang}{cmd:maxgap(}{it:#}{cmd:)} is the largest allowed time difference; default 1,
 in the units of time(). Moves compare consecutive observations with changed,
@@ -114,6 +143,7 @@ only when the observed state supports it. On ladders, outside states occupy a
 schematic band, with no estimated rank or effect. Boundaries/attrition do not
 create outside-state flows. A-U-B contributes A-U and U-B, not A-B.
 
+{marker attributes}
 {title:Attributes and visual encoding}
 {phang}{cmd:nodecolor(}{it:vars}{cmd:)} colors firms using seven equal-width numeric
 classes. Missing attributes are gray. {cmd:categorical} instead assigns distinct
@@ -129,6 +159,12 @@ Supplied sizes must be nonnegative and nonmissing at employed firms. Sizes use
 four common classes with upper bounds M/16, M/4, 9M/16, M. Positive marker area
 represents each class, not an exact continuous area; zero sizes remain visible.
 Worker markers have a fixed small size. Outside nodes use diamonds.
+
+{phang}{cmd:nodescale(}{it:#}{cmd:)} multiplies marker diameters and the matching
+arrow clearance. Default 1; positive values up to 5 are accepted. For many bins,
+try {cmd:nodescale(.35) nolabels top(60)}. It changes appearance only, leaving
+sizes, score quantiles, flows and saved coordinates unchanged. Use the same
+nodescale and sizemax across panels when comparing marker areas.
 
 {phang}{cmd:label(}{it:vars}{cmd:)} supplies firm labels; default original IDs.
 {cmd:nolabels} hides node labels. Display labels are truncated at 80 characters;
@@ -161,6 +197,7 @@ workercolor is supplied. Heatmap colors use colorlimits, or edgelimits for net
 cells. Defaults derive from displayed values. For legends, end classes include
 clipped values. A zero size/width maximum requests automatic scaling.
 
+{marker bins}
 {title:Statistics and rank aggregation}
 {phang}{cmd:statistic(count|share|probability)} defaults to count. Share divides by
 all departures from the origin, including hidden destinations. Probability
@@ -205,6 +242,7 @@ Select a group first or explicitly use {cmd:pooled} to acknowledge comparability
 fegraph cannot infer the normalization of external effects. Its weak components
 are distinct from ferank's strongly connected estimation components.
 
+{marker selection}
 {title:Display selection and layouts}
 {phang}{cmd:component(all|largest|}{it:#}{cmd:)} selects weak components; default all.
 The outside-state node does not join otherwise disconnected firm components.
@@ -237,7 +275,252 @@ aggregation/selection, never silent sampling. Hard ceilings are 2000 nodes,
 20000 edges and 100 heatmap nodes. Force repulsion is quadratic in displayed
 nodes. Shared-worker projection permits at most five million pair contributions.
 These are guards, not promises of readable figures at the upper limits.
+Ladders work with 50, 100 or 200 nonempty bins, subject to those limits. The
+outside state counts as one additional node. Use maxnodes(201) for 200 bins
+plus unemployment. Dense ladders can have quadratically many edges; reduce
+arrows with top()/minflow() or use a heatmap with fewer bins. Removing labels
+and shrinking markers does not change which flows are included.
 
+{marker examples}
+{title:More self-contained examples}
+{pstd}Examples below need only fegraph, except those in Reports. Every clickable
+block contains its own data generation and can be run independently. The runner
+reads the code displayed in this help file; it restores data and estimation results even on failure.
+
+{title:Worker--firm matches}
+{pstd}Select complete histories for a handful of workers. Outside observations
+are excluded because unemployment is not a worker--firm match.
+
+{cmd}{...}
+        preserve
+{* example_start - bipartite}{...}
+        clear
+        set obs 120
+        generate workerid = ceil(_n/6)
+        generate year = mod(_n-1,6)+1
+        generate firmid = mod(floor((workerid-1)/3)+floor((year-1)/2),6)+1
+        generate byte unemployed = year==3 & mod(workerid,4)==0
+        replace firmid = . if unemployed
+        generate psi = (firmid-3.5)/10
+        fegraph psi if workerid<=6, worker(workerid) firm(firmid) time(year) ///
+            type(bipartite) nonemployment(unemployed) ///
+            name(fegraph_bipartite, replace)
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}
+{stata fegraph_run bipartite using fegraph.sthlp:Click to run this example}
+(your original data are restored).
+
+{title:Quantile ladder with unemployment}
+{pstd}Three bins group the six firms by their supplied score. Unemployment stays separate.
+
+{cmd}{...}
+        preserve
+{* example_start - ladder}{...}
+        clear
+        set obs 120
+        generate workerid = ceil(_n/6)
+        generate year = mod(_n-1,6)+1
+        generate firmid = mod(floor((workerid-1)/3)+floor((year-1)/2),6)+1
+        generate byte unemployed = year==3 & mod(workerid,4)==0
+        replace firmid = . if unemployed
+        generate psi = (firmid-3.5)/10
+        fegraph psi, worker(workerid) firm(firmid) time(year) ///
+            type(ladder) bins(3) nonemployment(unemployed) ///
+            outsidelabel(Unemployment) name(fegraph_ladder, replace)
+        display "Nonempty firm bins: " r(N_bins)
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}
+{stata fegraph_run ladder using fegraph.sthlp:Click to run this example}
+(your original data are restored).
+
+{title:Flow heatmap}
+{pstd}Shares use all departures from each origin as their denominator.
+
+{cmd}{...}
+        preserve
+{* example_start - heatmap}{...}
+        clear
+        set obs 120
+        generate workerid = ceil(_n/6)
+        generate year = mod(_n-1,6)+1
+        generate firmid = mod(floor((workerid-1)/3)+floor((year-1)/2),6)+1
+        generate byte unemployed = year==3 & mod(workerid,4)==0
+        replace firmid = . if unemployed
+        generate psi = (firmid-3.5)/10
+        fegraph psi, worker(workerid) firm(firmid) time(year) ///
+            type(heatmap) bins(3) statistic(share) ///
+            nonemployment(unemployed) outsidelabel(Unemployment) ///
+            name(fegraph_heatmap, replace)
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}
+{stata fegraph_run heatmap using fegraph.sthlp:Click to run this example}
+(your original data are restored).
+
+{title:Fifty bins from a prepared flow table}
+{pstd}This artificial 200-firm flow matrix illustrates scale and syntax, not a labor-market model.
+
+{cmd}{...}
+        preserve
+{* example_start - manybins}{...}
+        clear
+        set obs 40000
+        generate origin = ceil(_n/200)
+        generate destination = mod(_n-1,200)+1
+        drop if origin==destination
+        generate origin_score = origin/200
+        generate destination_score = destination/200
+        generate moves = 1+mod(17*origin+31*destination,13)
+        fegraph origin_score destination_score, origin(origin) ///
+            destination(destination) flow(moves) type(ladder) bins(50) ///
+            net top(60) nodescale(.35) nolabels name(fegraph_manybins, replace)
+        assert r(N_bins)==50
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}
+{stata fegraph_run manybins using fegraph.sthlp:Click to run this example}
+(your original data are restored).
+
+{marker reports}
+{title:Simulation, estimation, ranking and PDF reports}
+{pstd}These optional examples require Stata 19 and installed {help fesim},
+{help fereg}, {help ferank}, {help latexlog}, and {help texpdf}, including the
+native plugins supplied with fereg and texpdf. They are not dependencies of the
+graph command. No example installs packages or downloads data automatically.
+Find the companion packages at
+{browse "https://github.com/johannes-schmieder/fesim":fesim},
+{browse "https://github.com/johannes-schmieder/fereg":fereg},
+{browse "https://github.com/johannes-schmieder/ferank":ferank},
+{browse "https://github.com/johannes-schmieder/latexlog":latexlog}, and
+{browse "https://github.com/johannes-schmieder/texpdf":texpdf}.
+
+{pstd}Each report below uses 6,000 workers, 80 firms, 12 annual observations
+and a fixed seed. It estimates worker/firm wage effects with fereg, estimates
+Bradley--Terry mobility scores with ferank, and draws all four graph types,
+plus a fifty-bin ladder and a ladder using the mobility score on the x-axis
+and the estimated wage effect on the y-axis. The complete workflow is installed
+as {cmd:fegraph_report.ado}; view it with {cmd:viewsource fegraph_report.ado}.
+
+{pstd}Reports check that the fixture's effects and scores are identified in one
+comparison component before plotting. Figures use illustrative parameters and
+observed snapshot transitions, not event hazards. The AKM example has exogenous
+mobility; the job-ladder example uses {cmd:dgp(akm) network(ladder)} with an
+upward-biased destination rule; {cmd:dgp(bm)} is the separate Burdett--Mortensen
+wage-posting equilibrium. Annual BM endpoint moves can be downward following an
+unobserved unemployment spell even though accepted on-the-job offers are upward.
+
+{pstd}{cmd:fegraph_report, outdir(directory) [dgp(all|akm|ladder|bm) replace view]}
+creates report.tex, report.pdf and six figure PDFs per model in that directory.
+Its parent directory must exist. Existing report/figure files require replace.
+It restores caller data, working directory and estimation results. On errors,
+partial output files can remain. r(pdf) and r(tex) give the result paths.
+The one-click examples below replace only their dedicated example outputs and
+print the output path; each can run independently. Add view to open the PDF. The combined report includes
+all three DGPs in one PDF.
+
+{title:AKM report}
+
+{cmd}{...}
+        preserve
+{* example_start - report_akm}{...}
+        capture mkdir "fegraph_examples"
+        fegraph_report, dgp(akm) outdir("fegraph_examples/akm") replace
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}
+{stata fegraph_run report_akm using fegraph.sthlp:Click to generate this report}
+(your original data are restored).
+
+{title:Job-ladder report}
+
+{cmd}{...}
+        preserve
+{* example_start - report_ladder}{...}
+        capture mkdir "fegraph_examples"
+        fegraph_report, dgp(ladder) outdir("fegraph_examples/ladder") replace
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}
+{stata fegraph_run report_ladder using fegraph.sthlp:Click to generate this report}
+(your original data are restored).
+
+{title:Burdett--Mortensen report}
+
+{cmd}{...}
+        preserve
+{* example_start - report_bm}{...}
+        capture mkdir "fegraph_examples"
+        fegraph_report, dgp(bm) outdir("fegraph_examples/bm") replace
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}
+{stata fegraph_run report_bm using fegraph.sthlp:Click to generate this report}
+(your original data are restored).
+
+{title:Combined report: all three DGPs}
+
+{cmd}{...}
+        preserve
+{* example_start - report_all}{...}
+        capture mkdir "fegraph_examples"
+        fegraph_report, dgp(all) outdir("fegraph_examples/all") replace
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}
+{stata fegraph_run report_all using fegraph.sthlp:Click to generate this report}
+(your original data are restored).
+
+{title:A compact report workflow to adapt}
+{pstd}This smaller example shows the six commands together explicitly. It writes
+one ranking ladder; the reports above include the complete figure collection.
+
+{cmd}{...}
+        preserve
+{* example_start - pipeline}{...}
+        capture mkdir "fegraph_examples"
+        fesim, dgp(akm) workers(2000) firms(20) periods(10) ///
+            seed(10404) truth(basic) noreport clear
+        fereg lnwage if employed, absorb(worker_fe=workerid firm_fe=firmid)
+        bysort firmid: egen double psi = mean(firm_fe)
+        ferank firmid, worker(workerid) time(time) method(bradleyterry) ///
+            score(mobility) componentid(component)
+        local report "fegraph_examples/pipeline.tex"
+        latexlog `report': open, replace
+        latexlog `report': title "Mobility ranking and firm wage effects"
+        fegraph mobility if !missing(mobility,psi), worker(workerid) ///
+            firm(firmid) time(time) type(ladder) bins(5) level(psi) ///
+            nodecolor(psi) effectgroup(component) net nodescale(.7) ///
+            name(fegraph_pipeline, replace)
+        latexlog `report': addfig, filename(pipeline-ladder.pdf) width(.95)
+        latexlog `report': close
+        texpdf using "`report'", replace
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}
+{stata fegraph_run pipeline using fegraph.sthlp:Click to run the compact workflow}
+(your original data are restored).
+
+{marker output}
 {title:Graph and data output}
 {phang}{cmd:name(}{it:name}{cmd:[, replace])}, {cmd:saving(}{it:file.gph}{cmd:)},
 {cmd:nodraw} and {cmd:graphopts(}{it:twoway options}{cmd:)} control ordinary Stata
@@ -264,6 +547,7 @@ computed; saved wage means always describe that gross direction.
 {pstd}Map table: original firm/outside ID to final node index and node_id,
 including bin membership. The map excludes worker nodes in bipartite mode.
 
+{marker stored}
 {title:Stored results}
 {pstd}{cmd:r(summary)} contains the following scalars, also returned individually:
 {p 8}N_input, N_workers, N_firms, N_matches, N_eligible, N_gaps, N_unknown,
@@ -295,6 +579,6 @@ and returns r(passed)=1 on success. It creates a named example graph.
 {title:Requirements and qualification}
 {pstd}Official Stata and Mata only. Source targets Stata 16 or newer. Licensed
 execution has been checked on macOS Stata/MP 19; Stata 16-18 and Windows/Linux
-have not been qualified. fesim and ferank are optional companions, not runtime
+have not been qualified. fesim, fereg, ferank, latexlog and texpdf are optional companions, not runtime
 dependencies. The repository includes contract, scale, integration, rendering
 and fresh-install checks. This is a private development package, not an SSC release.

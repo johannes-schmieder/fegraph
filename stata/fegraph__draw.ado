@@ -1,8 +1,8 @@
-*! fegraph 0.2.0 09oct2026
+*! fegraph 0.3.0 09oct2026
 program define fegraph__draw
     version 16.0
     syntax , TYPE(string) EDGE(string) EDGECOLOR(string) EDGESIZE(string) STATISTIC(string) CMIN(real) CMAX(real) WMIN(real) WMAX(real) ///
-        [CATEGORIES(string) NET NOLABELS NODRAW NAME(string) GRAPHOPTS(string asis)]
+        [NODESCALE(real 1) CATEGORIES(string) NET NOLABELS NODRAW NAME(string) GRAPHOPTS(string asis)]
     local sequential `""68 1 84" "68 57 131" "49 104 142" "33 145 140" "53 183 121" "144 215 67" "221 218 48""'
     local diverging `""166 54 3" "217 95 14" "253 174 107" "180 180 180" "128 205 193" "53 151 143" "1 102 94""'
     // Mata writes rendering metadata into the caller's locals; retrieve via c_local in wrapper.
@@ -59,8 +59,8 @@ program define fegraph__draw
                 forvalues s=1/4 {
                     quietly count if nkind==`k' & ncolor==`c' & nsize==`s'
                     if !r(N) continue
-                    local size = 2*`s'
-                    if `k'==1 local size 1.8
+                    local size = 2*`s'*`nodescale'
+                    if `k'==1 local size = 1.8*`nodescale'
                     local labelopt
                     if "`nolabels'"=="" local labelopt "mlabel(nlabel) mlabsize(vsmall) mlabcolor(gs4) mlabposition(12)"
                     if `k'==1 & "`nolabels'"=="" local labelopt "mlabel(nlabel) mlabsize(vsmall) mlabcolor(gs4) mlabposition(6)"

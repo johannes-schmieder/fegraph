@@ -7,7 +7,7 @@ It accepts firm effects, ranks and other attributes supplied by the user. It
 works alongside `fesim` and `ferank`, with explicit `worker()`/`firm()` IDs
 as in `fevc` and `feset`, without requiring any of these packages. The runtime uses official Stata and Mata only.
 
-**Version 0.2.0, private development package.** Source targets Stata 16+; licensed
+**Version 0.3.0, private development package.** Source targets Stata 16+; licensed
 execution is qualified on macOS Stata/MP 19. Other versions/platforms remain
 unqualified. There is no SSC release or selected redistribution license yet.
 
@@ -25,12 +25,44 @@ help fegraph
 Restart Stata before updating an already-loaded version so cached ado/Mata code
 is replaced. For development from the repository root, `adopath ++ stata` works.
 
+## Clickable examples and DGP reports
+
+`help fegraph` has section navigation and ten independent, one-click examples.
+The canonical network option is `type(firmgraph)`; `type(firm)` remains an alias.
+
+For a complete report using `fesim`, `fereg`, `ferank`, `fegraph`, `latexlog` and
+`texpdf` (Stata 19 and the optional companion packages must be installed):
+
+```stata
+capture mkdir fegraph_examples
+fegraph_report, dgp(all) outdir("fegraph_examples/all") replace view
+```
+
+Use `dgp(akm)`, `dgp(ladder)` or `dgp(bm)` for a single model. Each uses a fixed
+seed, 6,000 workers, 80 firms and 12 annual snapshots, and includes all four graph
+types plus a 50-bin ladder and a ladder based on the estimated mobility score.
+The job-ladder DGP is AKM with `network(ladder)`; BM is the separate wage-posting
+model. Report sources and figure PDFs remain beside the final PDF.
+
+Ladders support many bins, but dense flow matrices still need visual selection:
+
+```stata
+fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
+    type(ladder) bins(50) net top(60) nodescale(.35) nolabels
+```
+
+`nodescale()` scales markers and matching arrow clearance without changing the
+statistical graph. Quantiles never split ties. The default maximum is 200 total
+nodes, including unemployment; raise `maxnodes()` explicitly if necessary.
+Heatmaps have a separate limit of 100 total nodes. Tests cover 50, 100 and 200
+nonempty ladder bins; these limits are not guarantees that all arrows are readable.
+
 ## Panel syntax
 
 ```stata
 * The optional first variable is the firm score, not the firm ID.
 fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
-    type(firm) net name(firm_network, replace)
+    type(firmgraph) net name(firm_network, replace)
 
 * A match graph needs no score or time variable.
 fegraph, worker(workerid) firm(firmid) type(bipartite)
@@ -171,7 +203,7 @@ rendering; see help for their schemas and overwrite rules.
 
 ## Examples and validation
 
-- `fegraph_example, type(firm|bipartite|ladder|heatmap)` runs a preserving example.
+- `fegraph_example, type(firmgraph|bipartite|ladder|heatmap)` runs a preserving example.
 - `do examples/command_gallery.do` creates four figures from the synthetic fixture.
 - [`help fegraph`](stata/fegraph.sthlp) documents all options, statistics and outputs.
 - [Validation](docs/validation.md) describes counts, preservation checks, scale,

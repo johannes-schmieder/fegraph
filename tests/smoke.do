@@ -7,7 +7,7 @@ capture mkdir build/tests
 do examples/synthetic_panel.do
 generate double firm = firmid
 replace firm=. if unemployed
-fegraph, firm(firm) worker(workerid) time(time) type(firm) net nodecolor(psi) ///
+fegraph, firm(firm) worker(workerid) time(time) type(firmgraph) net nodecolor(psi) ///
     nodefile(build/tests/nodes.dta) edgefile(build/tests/edges.dta) replace name(smoke, replace)
 return list
 assert r(flow_total)==37

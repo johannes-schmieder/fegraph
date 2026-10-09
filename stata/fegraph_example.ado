@@ -1,8 +1,8 @@
-*! fegraph 0.2.0 09oct2026
+*! fegraph 0.3.0 09oct2026
 program define fegraph_example, rclass
     version 16.0
     syntax [, TYPE(string) NODRAW]
-    if "`type'"=="" local type firm
+    if "`type'"=="" local type firmgraph
     preserve
     capture noisily fegraph_example_run, type(`type') `nodraw'
     local rc=_rc

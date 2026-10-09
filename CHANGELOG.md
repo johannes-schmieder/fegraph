@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-10-09 (private development)
+
+- Name the network view `type(firmgraph)`; preserve `firm` as a compatibility alias.
+- Add `nodescale()` with consistent arrow clearance for larger ladders.
+- Add navigable ferank-style help, ten independently runnable example blocks,
+  a preserving example runner, and optional six-command DGP PDF reports.
+- Check 50/100/200-bin ladders and complete AKM, job-ladder and Burdett–Mortensen
+  simulation/estimation/ranking/graph/report workflows.
+
 ## 0.2.0 — 2026-10-09 (private development)
 
 - Move panel IDs into `worker()`/`firm()` and prepared-flow IDs into

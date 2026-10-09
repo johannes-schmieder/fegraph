@@ -25,7 +25,7 @@ real colvector fegraph__which(real matrix x) {
 transmorphic matrix fegraph__pick(transmorphic matrix x, real matrix mask) {
     return(x[fegraph__which(mask),.])
 }
-real scalar fegraph__version() return(200)
+real scalar fegraph__version() return(300)
 void fegraph__fail(string scalar msg) {
     errprintf("fegraph: %s\n",msg)
     _error(198)
@@ -791,10 +791,10 @@ void fegraph__plot(struct fegraph__graph scalar g) {
             if(d<1e-10) fegraph__fail("connected displayed nodes share coordinates; use rank bins or distinct coordinates")
             ra=0; rb=0
             if(g.directed) {
-                ra=min((.015+.014*nodeclass[a],d*.22)); rb=min((.025+.016*nodeclass[b],d*.24))
+                ra=min(((.015+.014*nodeclass[a])*fegraph__opt("nodescale"),d*.22)); rb=min(((.025+.016*nodeclass[b])*fegraph__opt("nodescale"),d*.24))
             }
             if(lanes[i]!=0) {
-                if(g.directed) { ra=.008+.006*nodeclass[a]; rb=.015+.007*nodeclass[b]; }
+                if(g.directed) { ra=(.008+.006*nodeclass[a])*fegraph__opt("nodescale"); rb=(.015+.007*nodeclass[b])*fegraph__opt("nodescale"); }
                 curve=fegraph__ladderpath((x1/sx,y1/sy),(x2/sx,y2/sy),lanes[i],ra,rb)
             }
             else {

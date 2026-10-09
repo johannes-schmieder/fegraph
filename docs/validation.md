@@ -1,6 +1,6 @@
 # Validation and support
 
-Version 0.2.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
+Version 0.3.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
 Source targets Stata 16 syntax. No licensed Stata 16–18, Windows or Linux
 qualification is claimed. The runtime uses only official Stata and Mata.
 
@@ -28,6 +28,9 @@ tracked. A zero batch process exit code alone is insufficient.
 | `interface.do` | Optional scores, explicit panel/endpoint IDs, attribute defaults/overrides, legacy-call rejection, qualifiers, outside-score missingness and state preservation |
 | `quantiles.do` | Native `xtile` reference comparisons with ties/skew/weights/descending scores, `collapse` bin means, worker-record multiplicity invariance, outside exclusion and move conservation |
 | `routing.do` | Above/below separation, shared-endpoint lanes, reciprocal arrows, input-order invariance, curved marker clearance, tied ranks, nonmonotone levels, unchanged node values/counts, and a gross-flow render |
+| `manybins.do` | 50/100/200-bin dense prepared-flow fixtures; conserved mass, node-scaling invariance, default/alias names and scale guards |
+| `help.do` | Five native help blocks run through the installed-style parser, preserving data and estimates; missing-block failure |
+| `reports.do` | All five optional help blocks: three individual DGP PDFs, combined PDF, compact pipeline; real fesim/fereg/ferank/latexlog/texpdf, paths with spaces, state restoration and overwrite guard |
 | `package.do` | `net install` into an isolated local ado directory, fresh-process loading of installed ado/Mata/help, installed selftest, all four installed examples |
 | `command_gallery.do` | Four figures written as PNG and PDF, with caller data restored; visual inspection of arrowheads, labels, legends and outside-state band |
 | `integration.do` | Actual fesim AKM output, ferank Bradley–Terry percentiles/components, ranked ladder with externally supplied effects, heatmap, retained ferank estimation results and simulation RNG |
@@ -75,3 +78,26 @@ checks that worker dictionaries do not depend on Stata's value-label ceiling.
 - This version implements firm, bipartite, ladder and heatmap views. Mover event
   profiles, sorting maps and animated trajectories from the original ideas list
   are separate potential extensions.
+
+## Optional reports
+
+With companions and native plugins available, and latexlog on the Stata adopath:
+
+```sh
+STATA_BIN=/path/to/stata-mp python3 scripts/test.py \
+  --fesim ../fesim --ferank ../ferank --fereg ../fereg --texpdf ../texpdf
+```
+
+`--reports-only` runs the report suite alone and writes a separate hash receipt.
+The suite executes the exact five optional blocks embedded in the help file.
+Outputs remain under ignored `build/report examples/fegraph_examples/` (the space
+in the path deliberately tests working-directory handling). Individual reports
+contain seven pages; the combined report contains nineteen, including eighteen
+figures. The report requires Stata 19, while the graph runtime still targets 16.
+
+The 200-firm dense flow-table fixture has 39,800 directed pairs. With 60 displayed
+net arrows, 50/100/200 nonempty ladder bins completed in approximately 0.6–0.9
+seconds each on this machine. This establishes functionality, not legibility of
+all possible arrows. The DGP report uses 30 net arrows for fifty-bin ladders.
+The report's firm networks use circle layouts to keep nodes visible when edge
+filtering would leave disconnected clusters and isolates in a force layout.

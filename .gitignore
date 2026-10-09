@@ -1,0 +1,22 @@
+# Local/editor state
+.DS_Store
+.vscode/
+.idea/
+*~
+
+# Data, graphs, logs and generated output
+build/
+data/
+*.dta
+*.csv
+*.parquet
+*.gph
+*.log
+*.smcl
+*.stswp
+*.mlib
+
+# Machine configuration and credentials
+.env
+.env.*
+__pycache__/

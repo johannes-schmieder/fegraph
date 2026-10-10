@@ -1,10 +1,8 @@
-*! fegraph 0.4.0 09oct2026
+*! fegraph 0.5.0 09oct2026
 program define fegraph__draw
     version 16.0
     syntax , TYPE(string) EDGE(string) EDGECOLOR(string) EDGESIZE(string) STATISTIC(string) CMIN(real) CMAX(real) WMIN(real) WMAX(real) ///
-        [STYLE(string) NODESCALE(real 1) CATEGORIES(string) NET NOLABELS NODRAW NAME(string) GRAPHOPTS(string asis)]
-    local sequential `""68 1 84" "68 57 131" "49 104 142" "33 145 140" "53 183 121" "144 215 67" "221 218 48""'
-    local diverging `""166 54 3" "217 95 14" "253 174 107" "180 180 180" "128 205 193" "53 151 143" "1 102 94""'
+        [STYLE(string) PALETTE(string asis) EDGEPALETTE(string asis) NODESCALE(real 1) CATEGORIES(string) NET NOLABELS NODRAW NAME(string) GRAPHOPTS(string asis)]
     // Mata writes rendering metadata into the caller's locals; retrieve via c_local in wrapper.
     local plots
     local p 0
@@ -17,8 +15,7 @@ program define fegraph__draw
             if !r(N) continue
             local color "245 245 245"
             if `c'>0 {
-                if "`net'"!="" local color : word `c' of `diverging'
-                else local color : word `c' of `sequential'
+                local color : word `c' of `palette'
             }
             local ++p
             local text "0 / hidden"
@@ -38,7 +35,7 @@ program define fegraph__draw
             local color "70 135 140"
             if "`style'"=="classic" local color "125 125 125"
             if "`edgecolor'"!="none" local color "170 170 170"
-            if `c'>0 local color : word `c' of `diverging'
+            if `c'>0 local color : word `c' of `edgepalette'
             forvalues s=1/4 {
                 quietly count if ecolor==`c' & esize==`s'
                 if !r(N) continue
@@ -62,7 +59,7 @@ program define fegraph__draw
             forvalues c=0/7 {
                 local color "160 160 160"
                 if "`style'"=="classic" local color "110 110 110"
-                if `c'>0 local color : word `c' of `sequential'
+                if `c'>0 local color : word `c' of `palette'
                 local symbol O
                 if `k'==2 local symbol D
                 forvalues s=1/4 {

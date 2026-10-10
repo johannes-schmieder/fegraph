@@ -7,7 +7,7 @@ It accepts firm effects, ranks and other attributes supplied by the user. It
 works alongside `fesim` and `ferank`, with explicit `worker()`/`firm()` IDs
 as in `fevc` and `feset`, without requiring any of these packages. The runtime uses official Stata and Mata only.
 
-**Version 0.4.0, private development package.** Source targets Stata 16+; licensed
+**Version 0.5.0, private development package.** Source targets Stata 16+; licensed
 execution is qualified on macOS Stata/MP 19. Other versions/platforms remain
 unqualified. There is no SSC release or selected redistribution license yet.
 
@@ -52,9 +52,37 @@ are descriptive, with no economic units. Existing saved coordinates still work.
 `do examples/classic_network.do` reproduces monochrome and colored PNGs in
 `build/classic/`. The constructed fixture has 72 firms and 80 connections.
 
+## Color palettes
+
+```stata
+fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
+    type(firmgraph) style(classic) palette(blues) ///
+    edgecolor(effect) edgepalette(redblue, reverse)
+```
+
+`palette()` controls nodes (including colored workers) and all heatmaps;
+`edgepalette()` controls links/arrows colored by effect or wage changes. Choose
+`viridis`, `blues`, `greens`, `grays`, `redblue`, or `brownteal`; add `, reverse`
+inside either option to reverse it. Defaults retain the previous appearance:
+viridis for nodes/gross heatmaps, brownteal for signed edges/net heatmaps.
+
+Custom palettes take exactly seven plain Stata color names or quoted RGB
+triplets, ordered from low to high:
+
+```stata
+palette(navy blue cyan gs14 yellow orange "190 30 45")
+```
+
+The seven value classes and all graph statistics stay unchanged. To center a
+diverging node palette at zero, specify symmetric `colorlimits()` too. Missing
+values retain neutral colors. `graphopts(title("") subtitle("") note(""))`
+suppresses automatic titles and notes. The help includes a runnable palette
+example; `do examples/palettes.do` creates a four-panel comparison in
+`build/palettes/comparison.png`.
+
 ## Clickable examples and DGP reports
 
-`help fegraph` has section navigation and twelve independent, one-click examples.
+`help fegraph` has section navigation and thirteen independent, one-click examples.
 The canonical network option is `type(firmgraph)`; `type(firm)` remains an alias.
 
 For a complete report using `fesim`, `fereg`, `ferank`, `fegraph`, `latexlog` and

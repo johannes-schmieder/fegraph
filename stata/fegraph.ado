@@ -1,4 +1,4 @@
-*! fegraph 0.4.0 09oct2026
+*! fegraph 0.5.0 09oct2026
 program define fegraph, rclass
     version 16.0
     // Options-only graph calls are valid; reserve only valid metadata calls.
@@ -12,8 +12,8 @@ program define fegraph, rclass
                 return scalar passed=1
                 di as result "fegraph selftest passed"
             }
-            else di as text "fegraph 0.4.0"
-            return local version "0.4.0"
+            else di as text "fegraph 0.5.0"
+            return local version "0.5.0"
             exit
         }
     }
@@ -33,7 +33,7 @@ program define fegraph__run, rclass
     syntax [varlist(default=none max=2)] [if] [in], _WORK(name) _MODEL(name) ///
         [WORKER(varname) FIRM(varname) ORIGIN(varname) DESTination(varname) ///
         TIME(varname numeric) FLOW(varname numeric) ///
-        TYPE(string) STYLE(string) LABELTOP(integer -1) EDGE(string) NET MAXGAP(real 1) SAMPLE(string) ///
+        TYPE(string) STYLE(string) PALETTE(string asis) EDGEPALETTE(string asis) LABELTOP(integer -1) EDGE(string) NET MAXGAP(real 1) SAMPLE(string) ///
         CATEGORICAL NODEColor(varlist numeric) NODESize(string) ORDER(varlist numeric) ///
         LEVEL(varlist numeric) LABEL(varlist) WORKERCOLOR(varname numeric) ///
         EFFECTGROUP(varlist) POOLed NONEMPloyment(varname numeric) ///
@@ -122,6 +122,22 @@ program define fegraph__run, rclass
             exit 198
         }
     }
+    // Resolve palettes before copying data or writing outputs. Classes stay fixed.
+    if `"`palette'"'=="" {
+        local palette viridis
+        if "`type'"=="heatmap" & "`net'"!="" local palette brownteal
+    }
+    if `"`edgepalette'"'!="" & "`type'"=="heatmap" {
+        di as error "use palette() for heatmap colors, including net heatmaps"
+        exit 198
+    }
+    if `"`edgepalette'"'=="" local edgepalette brownteal
+    fegraph__palette `palette'
+    local palette_name `"`r(name)'"'
+    local palette_colors `"`r(colors)'"'
+    fegraph__palette `edgepalette'
+    local edgepalette_name `"`r(name)'"'
+    local edgepalette_colors `"`r(colors)'"'
     // Normalize the public score/ID interface for the data engine.
     local firmscore `varlist'
     local nscore : word count `firmscore'
@@ -310,6 +326,7 @@ program define fegraph__run, rclass
     if "`outside_line'"!="" local autoopts `"`autoopts' yline(`outside_line', lpattern(dash) lcolor(gs12))"'
     if "`ladderlabels'"!="" local autoopts `"`autoopts' ylabel(`ladderlabels', angle(horizontal) format(%5.2g))"'
     fegraph__draw, type(`type') style(`style') edge(`edge') `net' `nolabels' `nodraw' ///
+        palette(`palette_colors') edgepalette(`edgepalette_colors') ///
         edgecolor(`edgecolor') edgesize(`edgesize') statistic(`statistic') ///
         nodescale(`nodescale') cmin(`colormin') cmax(`colormax') wmin(`workermin') wmax(`workermax') categories(`categories') name(`name') graphopts(`autoopts' `graphopts')
     if `"`saving'"'!="" graph save `"`saving'"', `replace'
@@ -339,10 +356,14 @@ program define fegraph__run, rclass
     return scalar bins_requested = `bins'
     return local score "`firmscore'"
     if `bins'>0 di as text "Quantile bins: " as result `actualbins' as text " nonempty / " as result `bins' as text " requested"
+    return local palette `"`palette_name'"'
+    return local palette_colors `"`palette_colors'"'
+    return local edgepalette `"`edgepalette_name'"'
+    return local edgepalette_colors `"`edgepalette_colors'"'
     return local style "`style'"
     return local type "`type'"
     return local input = cond(`panel',"panel","edge")
-    return local version "0.4.0"
+    return local version "0.5.0"
     return local sample "`sample'"
     di as text "fegraph: " as result el(`summary',1,11) as text " nodes; " ///
         as result el(`summary',1,12) as text " edges shown. Gross flow coverage: " ///

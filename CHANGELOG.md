@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 — 2026-10-09 (private development)
+
+- Expose palette() for nodes and heatmaps and edgepalette() for effect/wage arrows,
+  with six named palettes, independent reversal and seven-color custom lists.
+- Validate named colors and RGB triplets, preserve previous defaults and fixed
+  color classes, and return the resolved palettes for reproducibility.
+- Add a one-click palette help example, a four-panel gallery, render-level color
+  checks, and graph/data/state invariance checks.
+
 ## 0.4.0 — 2026-10-09 (private development)
 
 - Add `style(classic)` for familiar force-directed firm networks: thin gray

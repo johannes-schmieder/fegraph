@@ -25,7 +25,7 @@ real colvector fegraph__which(real matrix x) {
 transmorphic matrix fegraph__pick(transmorphic matrix x, real matrix mask) {
     return(x[fegraph__which(mask),.])
 }
-real scalar fegraph__version() return(400)
+real scalar fegraph__version() return(500)
 void fegraph__fail(string scalar msg) {
     errprintf("fegraph: %s\n",msg)
     _error(198)

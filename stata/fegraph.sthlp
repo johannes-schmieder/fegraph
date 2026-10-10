@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.0 09oct2026}{...}
+{* *! version 0.5.0 09oct2026}{...}
 {.-}
 help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 {.-}
@@ -166,6 +166,37 @@ labels or a larger graph. Exported labels are never truncated by labeltop().
 classes. Missing attributes are gray. {cmd:categorical} instead assigns distinct
 colors to up to seven numeric category codes; encode string categories first.
 Categorical colors cannot be averaged into bins. Legends show codes, not value labels.
+
+{phang}{cmd:palette(}{it:name}{cmd:[, reverse])} selects node colors (including
+workercolor()) and heatmap cell colors. Names are {cmd:viridis}, {cmd:blues},
+{cmd:greens}, {cmd:grays}, {cmd:redblue}, and {cmd:brownteal}.
+The default is viridis, except that net heatmaps default to brownteal.
+These are fixed seven-color sequences, not continuous gradients. The reverse
+suboption reverses colors without reversing scores, ranks, classes or labels.
+For example: {cmd:palette(blues, reverse)}.
+
+{phang}{cmd:edgepalette(}{it:name}{cmd:[, reverse])} selects the colors of links
+and arrowheads when edgecolor(effect) or edgecolor(wage) is active; default
+brownteal. Use palette(), not edgepalette(), for heatmaps, including net cells.
+Edgepalette has no effect with edgecolor(none). Uncolored/missing nodes, outside
+nodes, missing changes and zero/hidden heatmap cells retain their neutral colors.
+
+{pstd}Both options also accept exactly seven colors, in low-to-high order,
+instead of a name. Use plain named Stata colors or individually quoted RGB
+triplets with integer components from 0 through 255. For example:
+{cmd:palette(navy blue cyan gs14 yellow orange "190 30 45")}.
+Append {cmd:, reverse} to reverse a custom list. Opacity/intensity modifiers,
+hex, HSV and CMYK specifications are not supported in these lists. These options
+set colors explicitly, so a graph scheme does not override them.
+
+{pstd}Palettes change appearance only. Color limits, class membership, supplied
+attributes, graph selection, counts and coordinates are unchanged. Redblue runs
+from red through a light center to blue; brownteal runs from brown/orange through
+a gray center to teal. Edge changes and net heatmaps have symmetric limits about
+zero. For a diverging node palette centered at zero, also set symmetric
+colorlimits(), such as {cmd:palette(redblue) colorlimits(-.5 .5)}.
+With categorical, colors follow ascending category codes; fewer than seven
+categories use the first colors of the resolved sequence.
 
 {phang}{cmd:nodesize(employment|matches|flow|equal|}{it:vars}{cmd:)} defaults to mean
 employment for panels (selected records divided by the number of selected time
@@ -497,6 +528,34 @@ default {cmd:edge(moves)} with {cmd:time()} for directed adjacent transitions,
 and add {cmd:net} for net arrows. All variants accept {cmd:style(classic)};
 supplying a score before the comma colors firms by that score.
 
+{title:Choose palettes for firms and flow arrows}
+{pstd}This complete seven-firm example uses a blue node gradient and red-to-blue
+arrows for changes in the supplied effect. Replace palette(blues) with a custom
+list or palette(blues, reverse) to change its direction. Titles and notes can
+be suppressed independently through graphopts().
+
+{cmd}{...}
+        preserve
+{* example_start - palettes}{...}
+        clear
+        set obs 7
+        generate workerid = _n
+        expand 2
+        bysort workerid: generate year = _n
+        generate firmid = cond(year==1,workerid,mod(workerid,7)+1)
+        generate psi = (firmid-4)/10
+        fegraph psi, worker(workerid) firm(firmid) time(year) ///
+            type(firmgraph) style(classic) layout(circle) ///
+            palette(blues) edgecolor(effect) edgepalette(redblue) ///
+            name(fegraph_palettes, replace) ///
+            graphopts(title("Custom palettes") subtitle("") note(""))
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}{stata fegraph_run palettes using fegraph.sthlp:Click to run this example}
+(your original data and estimates are restored).
+
 {marker reports}
 {title:Simulation, estimation, ranking and PDF reports}
 {pstd}These optional examples require Stata 19 and installed {help fesim},
@@ -630,7 +689,10 @@ one ranking ladder; the reports above include the complete figure collection.
 {title:Graph and data output}
 {phang}{cmd:name(}{it:name}{cmd:[, replace])}, {cmd:saving(}{it:file.gph}{cmd:)},
 {cmd:nodraw} and {cmd:graphopts(}{it:twoway options}{cmd:)} control ordinary Stata
-graphs. graphopts are applied last. Use {cmd:graph export} for PNG, SVG or PDF.
+graphs. graphopts are applied last. For example,
+{cmd:graphopts(title("") subtitle("") note(""))} suppresses automatic text;
+add {cmd:legend(off)} inside graphopts() to hide the color legend too.
+Use {cmd:graph export} for PNG, SVG or PDF.
 
 {phang}{cmd:nodefile(}{it:file.dta}{cmd:)}, {cmd:edgefile(}{it:file.dta}{cmd:)}, and
 {cmd:mapfile(}{it:file.dta}{cmd:)} optionally save the audit data. {cmd:replace}
@@ -679,7 +741,10 @@ rendered cells. Captions report coverage; there is no silent component selection
 {pstd}Additional scalars: r(N_bins) is the number of nonempty firm bins (0 without
 aggregation); r(bins_requested) is the requested count. Macros: r(type), r(input),
 r(style), r(sample), r(score) (resolved score variables), r(version). {cmd:fegraph, version}
-reports the version. {cmd:fegraph, selftest} runs a small preserving smoke test
+reports the version. r(palette) and r(edgepalette) identify the resolved palette
+names (or custom), with reverse when requested. r(palette_colors) and
+r(edgepalette_colors) contain the seven resolved colors in display order.
+{cmd:fegraph, selftest} runs a small preserving smoke test
 and returns r(passed)=1 on success. It creates a named example graph.
 
 {title:Requirements and qualification}

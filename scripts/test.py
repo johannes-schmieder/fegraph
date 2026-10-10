@@ -43,9 +43,9 @@ def main():
         raise RuntimeError('Empty package manifest')
     out = ROOT / 'build' / 'test-runs'
     out.mkdir(parents=True, exist_ok=True)
-    sources = [*manifest, *sorted((ROOT / 'tests').glob('*.do')), ROOT / 'examples' / 'command_gallery.do', ROOT / 'examples' / 'synthetic_panel.do', ROOT / 'examples' / 'network_panel.do', ROOT / 'examples' / 'classic_network.do', ROOT / 'fegraph.pkg', ROOT / 'stata.toc']
+    sources = [*manifest, *sorted((ROOT / 'tests').glob('*.do')), ROOT / 'examples' / 'command_gallery.do', ROOT / 'examples' / 'synthetic_panel.do', ROOT / 'examples' / 'network_panel.do', ROOT / 'examples' / 'classic_network.do', ROOT / 'examples' / 'palettes.do', ROOT / 'scripts' / 'test.py', ROOT / 'scripts' / 'check_palette_svg.py', ROOT / 'fegraph.pkg', ROOT / 'stata.toc']
     receipt = {'source_sha256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}, 'suites': {}}
-    suites = [('smoke','FEGRAPH_SMOKE_OK'), ('contracts','FEGRAPH_CONTRACTS_OK'), ('interface','FEGRAPH_INTERFACE_OK'), ('quantiles','FEGRAPH_QUANTILES_OK'), ('advanced','FEGRAPH_ADVANCED_OK'), ('routing','FEGRAPH_ROUTING_OK'), ('manybins','FEGRAPH_MANYBINS_OK'), ('classic','FEGRAPH_CLASSIC_OK'), ('help','FEGRAPH_HELP_OK'), ('package','FEGRAPH_PACKAGE_OK'), ('gallery','FEGRAPH_GALLERY_OK')]
+    suites = [('smoke','FEGRAPH_SMOKE_OK'), ('contracts','FEGRAPH_CONTRACTS_OK'), ('interface','FEGRAPH_INTERFACE_OK'), ('quantiles','FEGRAPH_QUANTILES_OK'), ('advanced','FEGRAPH_ADVANCED_OK'), ('routing','FEGRAPH_ROUTING_OK'), ('manybins','FEGRAPH_MANYBINS_OK'), ('classic','FEGRAPH_CLASSIC_OK'), ('palettes','FEGRAPH_PALETTES_OK'), ('help','FEGRAPH_HELP_OK'), ('package','FEGRAPH_PACKAGE_OK'), ('gallery','FEGRAPH_GALLERY_OK')]
     if args.fesim:
         suites.append(('integration', 'FEGRAPH_INTEGRATION_OK'))
     if args.fereg:
@@ -68,6 +68,10 @@ def main():
         output = batch_log.read_text(errors='replace') if batch_log.exists() else ''
         # Only a standalone printed line counts; echoed do-file source does not.
         passed = result.returncode == 0 and marker in [line.strip() for line in output.splitlines()]
+        if passed and suite == 'palettes':
+            colors = subprocess.run([sys.executable, str(ROOT / 'scripts' / 'check_palette_svg.py')], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            output += '\n' + colors.stdout
+            passed = colors.returncode == 0 and 'FEGRAPH_PALETTE_SVG_OK' in colors.stdout.splitlines()
         destination = out / f'{suite}.log'
         destination.write_text(output + '\n' + result.stdout)
         receipt['suites'][suite] = {'passed': passed, 'log': str(destination.relative_to(ROOT))}

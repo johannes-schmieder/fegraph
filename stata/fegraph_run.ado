@@ -1,4 +1,4 @@
-*! fegraph_run 0.4.0 09oct2026
+*! fegraph_run 0.5.0 09oct2026
 *! Run marked examples embedded in fegraph.sthlp, restoring caller data.
 *! Marker convention follows fevc_run and Robert Picard's geo2xy pattern.
 

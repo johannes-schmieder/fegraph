@@ -1,6 +1,6 @@
 # Validation and support
 
-Version 0.4.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
+Version 0.5.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
 Source targets Stata 16 syntax. No licensed Stata 16–18, Windows or Linux
 qualification is claimed. The runtime uses only official Stata and Mata.
 
@@ -29,9 +29,10 @@ tracked. A zero batch process exit code alone is insufficient.
 | `quantiles.do` | Native `xtile` reference comparisons with ties/skew/weights/descending scores, `collapse` bin means, worker-record multiplicity invariance, outside exclusion and move conservation |
 | `routing.do` | Above/below separation, shared-endpoint lanes, reciprocal arrows, input-order invariance, curved marker clearance, tied ranks, nonmonotone levels, unchanged node values/counts, and a gross-flow render |
 | `manybins.do` | 50/100/200-bin dense prepared-flow fixtures; conserved mass, node-scaling invariance, default/alias names and scale guards |
-| `help.do` | Seven native help blocks run through the installed-style parser, preserving data and estimates; missing-block failure |
+| `help.do` | Eight native help blocks run through the installed-style parser, preserving data and estimates; missing-block failure |
 | `reports.do` | All five optional help blocks: three individual DGP PDFs, combined PDF, compact pipeline; real fesim/fereg/ferank/latexlog/texpdf, paths with spaces, state restoration and overwrite guard |
 | `classic.do` | Counts/node/edge/coordinate invariance across styles, input-order invariance, label quotas and ties, outside labels, empty graphs, option guards, directed arrows and two network renders |
+| `palettes.do` | Named/custom palettes and reversal, all four views, worker/categorical colors, invalid-input guards, unchanged exported graphs and caller state; SVG checks verify marker, legend, arrow and heatmap colors |
 | `package.do` | `net install` into an isolated local ado directory, fresh-process loading of installed ado/Mata/help, installed selftest, all four installed examples |
 | `command_gallery.do` | Four figures written as PNG and PDF, with caller data restored; visual inspection of arrowheads, labels, legends and outside-state band |
 | `integration.do` | Actual fesim AKM output, ferank Bradley–Terry percentiles/components, ranked ladder with externally supplied effects, heatmap, retained ferank estimation results and simulation RNG |
@@ -124,5 +125,20 @@ graphs. Classic defaults to smaller markers; use common explicit nodescale()
 values when comparing styles or panels.
 
 The five optional report blocks were qualified in 0.3; this change does not add
-or change report figures. Version 0.4 checks the graph suites and integration;
+or change report figures. Versions 0.4 and 0.5 check the graph suites and integration;
 the earlier delivered PDF remains the version-0.3 report.
+
+## User palettes (0.5)
+
+The renderer accepts six named seven-color sequences and exactly seven plain
+Stata names or RGB triplets. Both options can reverse the sequence. palette()
+controls nodes, worker colors and heatmaps, including net heatmaps;
+edgepalette() controls effect/wage-colored links and arrowheads. Existing
+classes, bounds and default colors are unchanged. Opacity/intensity modifiers,
+hex, HSV and CMYK custom formats are deliberately rejected.
+
+The palette suite exports SVGs; scripts/check_palette_svg.py checks actual
+rendered colors, matching marker/legend entries, reversed assignments, arrow
+strokes/fills, and signed heatmap cells. It also compares full node and edge
+exports across palettes and checks successful/failed calls preserve data,
+estimates and RNG. The four-panel Stata gallery is build/palettes/comparison.png.

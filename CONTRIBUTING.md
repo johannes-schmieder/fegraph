@@ -8,6 +8,7 @@ Stata/Mata; do not require a compiler or a third-party graph package.
 - `fegraph.mata`: ID dictionaries, matches/transitions, attributes, aggregation,
   weak components, display selection, force layout, geometry and export tables.
 - `fegraph__draw.ado`: bounded style layers and ordinary Stata `twoway` rendering.
+- `fegraph__palette.ado`: named/custom seven-color palettes, validation and reversal.
 - `fegraph__load.ado`: loads installed Mata source on demand.
 - `fegraph_example.ado`: preserving examples and the installation selftest.
 - `fegraph_run.ado`: extracts runnable blocks directly from the help.

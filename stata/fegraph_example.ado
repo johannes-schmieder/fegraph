@@ -1,4 +1,4 @@
-*! fegraph 0.3.0 09oct2026
+*! fegraph 0.4.0 09oct2026
 program define fegraph_example, rclass
     version 16.0
     syntax [, TYPE(string) NODRAW]

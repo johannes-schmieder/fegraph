@@ -43,9 +43,9 @@ def main():
         raise RuntimeError('Empty package manifest')
     out = ROOT / 'build' / 'test-runs'
     out.mkdir(parents=True, exist_ok=True)
-    sources = [*manifest, *sorted((ROOT / 'tests').glob('*.do')), ROOT / 'examples' / 'command_gallery.do', ROOT / 'examples' / 'synthetic_panel.do', ROOT / 'fegraph.pkg', ROOT / 'stata.toc']
+    sources = [*manifest, *sorted((ROOT / 'tests').glob('*.do')), ROOT / 'examples' / 'command_gallery.do', ROOT / 'examples' / 'synthetic_panel.do', ROOT / 'examples' / 'network_panel.do', ROOT / 'examples' / 'classic_network.do', ROOT / 'fegraph.pkg', ROOT / 'stata.toc']
     receipt = {'source_sha256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}, 'suites': {}}
-    suites = [('smoke','FEGRAPH_SMOKE_OK'), ('contracts','FEGRAPH_CONTRACTS_OK'), ('interface','FEGRAPH_INTERFACE_OK'), ('quantiles','FEGRAPH_QUANTILES_OK'), ('advanced','FEGRAPH_ADVANCED_OK'), ('routing','FEGRAPH_ROUTING_OK'), ('manybins','FEGRAPH_MANYBINS_OK'), ('help','FEGRAPH_HELP_OK'), ('package','FEGRAPH_PACKAGE_OK'), ('gallery','FEGRAPH_GALLERY_OK')]
+    suites = [('smoke','FEGRAPH_SMOKE_OK'), ('contracts','FEGRAPH_CONTRACTS_OK'), ('interface','FEGRAPH_INTERFACE_OK'), ('quantiles','FEGRAPH_QUANTILES_OK'), ('advanced','FEGRAPH_ADVANCED_OK'), ('routing','FEGRAPH_ROUTING_OK'), ('manybins','FEGRAPH_MANYBINS_OK'), ('classic','FEGRAPH_CLASSIC_OK'), ('help','FEGRAPH_HELP_OK'), ('package','FEGRAPH_PACKAGE_OK'), ('gallery','FEGRAPH_GALLERY_OK')]
     if args.fesim:
         suites.append(('integration', 'FEGRAPH_INTEGRATION_OK'))
     if args.fereg:

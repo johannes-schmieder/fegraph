@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 — 2026-10-09 (private development)
+
+- Add `style(classic)` for familiar force-directed firm networks: thin gray
+  links, small markers, optional supplied colors and directed arrows.
+- Add `labeltop()` with a size-based label quota; classic labels use an eight-way
+  placement heuristic and draw above nodes. Preserve complete exported labels.
+- Improve force layout with deterministic disk initialization and mild centering,
+  limiting isolate drift and the resulting compression of connected firms. Saved coordinates remain reusable.
+- Add two self-contained help examples, a reproducible network gallery, display
+  invariance checks and an actual fesim block-network integration figure.
+
 ## 0.3.0 — 2026-10-09 (private development)
 
 - Name the network view `type(firmgraph)`; preserve `firm` as a compatibility alias.

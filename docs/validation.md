@@ -1,6 +1,6 @@
 # Validation and support
 
-Version 0.3.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
+Version 0.4.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
 Source targets Stata 16 syntax. No licensed Stata 16–18, Windows or Linux
 qualification is claimed. The runtime uses only official Stata and Mata.
 
@@ -29,8 +29,9 @@ tracked. A zero batch process exit code alone is insufficient.
 | `quantiles.do` | Native `xtile` reference comparisons with ties/skew/weights/descending scores, `collapse` bin means, worker-record multiplicity invariance, outside exclusion and move conservation |
 | `routing.do` | Above/below separation, shared-endpoint lanes, reciprocal arrows, input-order invariance, curved marker clearance, tied ranks, nonmonotone levels, unchanged node values/counts, and a gross-flow render |
 | `manybins.do` | 50/100/200-bin dense prepared-flow fixtures; conserved mass, node-scaling invariance, default/alias names and scale guards |
-| `help.do` | Five native help blocks run through the installed-style parser, preserving data and estimates; missing-block failure |
+| `help.do` | Seven native help blocks run through the installed-style parser, preserving data and estimates; missing-block failure |
 | `reports.do` | All five optional help blocks: three individual DGP PDFs, combined PDF, compact pipeline; real fesim/fereg/ferank/latexlog/texpdf, paths with spaces, state restoration and overwrite guard |
+| `classic.do` | Counts/node/edge/coordinate invariance across styles, input-order invariance, label quotas and ties, outside labels, empty graphs, option guards, directed arrows and two network renders |
 | `package.do` | `net install` into an isolated local ado directory, fresh-process loading of installed ado/Mata/help, installed selftest, all four installed examples |
 | `command_gallery.do` | Four figures written as PNG and PDF, with caller data restored; visual inspection of arrowheads, labels, legends and outside-state band |
 | `integration.do` | Actual fesim AKM output, ferank Bradley–Terry percentiles/components, ranked ladder with externally supplied effects, heatmap, retained ferank estimation results and simulation RNG |
@@ -101,3 +102,27 @@ seconds each on this machine. This establishes functionality, not legibility of
 all possible arrows. The DGP report uses 30 net arrows for fifty-bin ladders.
 The report's firm networks use circle layouts to keep nodes visible when edge
 filtering would leave disconnected clusters and isolates in a force layout.
+
+## Classic networks (0.4)
+
+The classic gallery uses a constructed panel with 72 firms, 80 linked firm
+pairs, and 289 distinct shared-worker connections. Both monochrome and supplied
+firm-effect colors retain every connection. Tests compare complete exported
+node and edge tables across styles, check input-order invariance, and verify
+that the label quota leaves exported labels intact. An actual fesim AKM block
+mobility example supplies an additional 60-firm network preview with relatively
+balanced firm sizes (firm_size_sd .3), strong community preference
+(block_log_bonus 4), the largest 140 links and nodescale(.15). Edge selection
+can leave isolates; centering does not guarantee readable dense clusters.
+
+Force-layout coordinates change in 0.4: disk initialization and mild centering
+replace the initial circular perturbation and unbounded isolate drift. Circle,
+ladder, bipartite and reused-coordinate layouts keep their definitions. Label
+placement uses approximate screen-relative boxes and eight clock positions;
+it reduces overlap but cannot guarantee collision-free text in arbitrary dense
+graphs. Classic defaults to smaller markers; use common explicit nodescale()
+values when comparing styles or panels.
+
+The five optional report blocks were qualified in 0.3; this change does not add
+or change report figures. Version 0.4 checks the graph suites and integration;
+the earlier delivered PDF remains the version-0.3 report.

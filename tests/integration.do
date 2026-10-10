@@ -27,4 +27,13 @@ graph export build/tests/ranked_ladder.png, width(1800) replace
 fegraph psi_true, firm(firmid) worker(workerid) time(time) type(heatmap) ///
     bins(10) statistic(share) name(fesim_heatmap, replace)
 graph export build/tests/fesim_heatmap.png, width(1800) replace
+// A conventional network using actual simulated worker histories.
+fesim, dgp(akm) network(blocks) workers(3000) firms(60) periods(8) ///
+    seed(10405) parameters(firm_size_sd .3 block_log_bonus 4) truth(basic) noreport clear
+fegraph psi_true, worker(workerid) firm(firmid) time(time) ///
+    type(firmgraph) edge(shared) style(classic) top(140) labeltop(8) nodescale(.15) ///
+    iterations(600) seed(7) name(classic_fesim, replace) ///
+    graphopts(title("AKM firm network") subtitle("Simulated block mobility; largest 140 shared-worker links") xsize(9) ysize(8))
+assert r(N_firms)==60 & r(N_shown_edges)==140
+graph export build/tests/classic-fesim.png, width(2000) replace
 display "FEGRAPH_INTEGRATION_OK"

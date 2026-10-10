@@ -7,7 +7,7 @@ It accepts firm effects, ranks and other attributes supplied by the user. It
 works alongside `fesim` and `ferank`, with explicit `worker()`/`firm()` IDs
 as in `fevc` and `feset`, without requiring any of these packages. The runtime uses official Stata and Mata only.
 
-**Version 0.3.0, private development package.** Source targets Stata 16+; licensed
+**Version 0.4.0, private development package.** Source targets Stata 16+; licensed
 execution is qualified on macOS Stata/MP 19. Other versions/platforms remain
 unqualified. There is no SSC release or selected redistribution license yet.
 
@@ -25,9 +25,36 @@ help fegraph
 Restart Stata before updating an already-loaded version so cached ado/Mata code
 is replaced. For development from the repository root, `adopath ++ stata` works.
 
+## Classic network graphs
+
+For a conventional force-directed network with small peripheral firms, larger
+hubs, fine gray links and labels for the largest firms:
+
+```stata
+fegraph, worker(workerid) firm(firmid) type(firmgraph) ///
+    edge(shared) style(classic) labeltop(12)
+```
+
+Add a positional score such as
+`psi_hat` to color firms by their supplied wage effect. The style keeps explicit
+color choices; it does not alter edges or counts. `edge(shared)` counts distinct
+workers observed at both firms; it is undirected. Use `time(year) edge(moves)`
+(and optionally `net`) for directed adjacent moves with arrows.
+
+Classic defaults to `nodescale(.35)` and labels the 15 largest displayed firms
+by node size. `labeltop()` changes that number. Labels are placed around nearby
+nodes and drawn on top. The force layout now uses a disk initialization and mild
+centering to limit isolate drift. Dense graphs may still need smaller markers
+or explicit edge selection. Coordinates
+are descriptive, with no economic units. Existing saved coordinates still work.
+
+`help fegraph` includes two independent clickable classic-network examples.
+`do examples/classic_network.do` reproduces monochrome and colored PNGs in
+`build/classic/`. The constructed fixture has 72 firms and 80 connections.
+
 ## Clickable examples and DGP reports
 
-`help fegraph` has section navigation and ten independent, one-click examples.
+`help fegraph` has section navigation and twelve independent, one-click examples.
 The canonical network option is `type(firmgraph)`; `type(firm)` remains an alias.
 
 For a complete report using `fesim`, `fereg`, `ferank`, `fegraph`, `latexlog` and

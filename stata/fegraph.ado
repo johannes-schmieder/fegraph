@@ -1,4 +1,4 @@
-*! fegraph 0.3.0 09oct2026
+*! fegraph 0.4.0 09oct2026
 program define fegraph, rclass
     version 16.0
     // Options-only graph calls are valid; reserve only valid metadata calls.
@@ -12,8 +12,8 @@ program define fegraph, rclass
                 return scalar passed=1
                 di as result "fegraph selftest passed"
             }
-            else di as text "fegraph 0.3.0"
-            return local version "0.3.0"
+            else di as text "fegraph 0.4.0"
+            return local version "0.4.0"
             exit
         }
     }
@@ -33,7 +33,7 @@ program define fegraph__run, rclass
     syntax [varlist(default=none max=2)] [if] [in], _WORK(name) _MODEL(name) ///
         [WORKER(varname) FIRM(varname) ORIGIN(varname) DESTination(varname) ///
         TIME(varname numeric) FLOW(varname numeric) ///
-        TYPE(string) EDGE(string) NET MAXGAP(real 1) SAMPLE(string) ///
+        TYPE(string) STYLE(string) LABELTOP(integer -1) EDGE(string) NET MAXGAP(real 1) SAMPLE(string) ///
         CATEGORICAL NODEColor(varlist numeric) NODESize(string) ORDER(varlist numeric) ///
         LEVEL(varlist numeric) LABEL(varlist) WORKERCOLOR(varname numeric) ///
         EFFECTGROUP(varlist) POOLed NONEMPloyment(varname numeric) ///
@@ -44,12 +44,22 @@ program define fegraph__run, rclass
         SEED(integer 1) ITERations(integer 200) MAXNodes(integer 200) MAXEdges(integer 1000) ///
         COORDinates(string) NODEFile(string) EDGEFile(string) MAPFile(string) ///
         SAVing(string) COLORLIMITS(numlist min=2 max=2) EDGELIMITS(numlist min=2 max=2) ///
-        SIZEMAX(real 0) WIDTHMAX(real 0) NODESCALE(real 1) REPLACE NAME(string) NOLABELS NODRAW GRAPHOPTS(string asis)]
-    foreach opt in type edge sample edgecolor edgesize statistic component binweight layout wagescale {
+        SIZEMAX(real 0) WIDTHMAX(real 0) NODESCALE(string) REPLACE NAME(string) NOLABELS NODRAW GRAPHOPTS(string asis)]
+    foreach opt in type style edge sample edgecolor edgesize statistic component binweight layout wagescale {
         local `opt' = lower(strtrim(`"``opt''"'))
     }
     if "`type'"=="" local type firmgraph
     if "`type'"=="firm" local type firmgraph // compatibility alias
+    if "`style'"=="" local style default
+    if "`style'"=="classic" & `labeltop'==-1 local labeltop 15
+    if !inlist("`style'","default","classic") | `labeltop'<-1 {
+        di as error "style() must be default or classic; labeltop() must be nonnegative"
+        exit 198
+    }
+    if "`type'"!="firmgraph" & ("`style'"=="classic" | `labeltop'>=0) {
+        di as error "style(classic) and labeltop() apply to type(firmgraph)"
+        exit 198
+    }
     if "`edge'"=="" local edge moves
     if "`sample'"=="" local sample selected
     if "`edgecolor'"=="" local edgecolor none
@@ -73,6 +83,12 @@ program define fegraph__run, rclass
         `bins'<0 | `bins'>2000 | `top'<0 | `steps'<1 | `iterations'<1 | `iterations'>2000 | ///
         `maxnodes'<1 | `maxnodes'>2000 | `maxedges'<1 | `maxedges'>20000 {
         di as error "invalid numerical control; bins()/maxnodes() <= 2000 and maxedges() <= 20000"
+        exit 198
+    }
+    if "`nodescale'"=="" local nodescale = cond("`style'"=="classic",.35,1)
+    capture confirm number `nodescale'
+    if _rc {
+        di as error "nodescale() requires a number"
         exit 198
     }
     if `nodescale'<=0 | `nodescale'>5 | missing(`nodescale') {
@@ -293,7 +309,7 @@ program define fegraph__run, rclass
     if "`type'"=="heatmap" local autoopts `"`autoopts' xlabel(`heatlabels', angle(45) labsize(vsmall)) ylabel(`heatlabels', labsize(vsmall) angle(horizontal)) xscale(range(.5 `heatmax')) yscale(range(.5 `heatmax'))"'
     if "`outside_line'"!="" local autoopts `"`autoopts' yline(`outside_line', lpattern(dash) lcolor(gs12))"'
     if "`ladderlabels'"!="" local autoopts `"`autoopts' ylabel(`ladderlabels', angle(horizontal) format(%5.2g))"'
-    fegraph__draw, type(`type') edge(`edge') `net' `nolabels' `nodraw' ///
+    fegraph__draw, type(`type') style(`style') edge(`edge') `net' `nolabels' `nodraw' ///
         edgecolor(`edgecolor') edgesize(`edgesize') statistic(`statistic') ///
         nodescale(`nodescale') cmin(`colormin') cmax(`colormax') wmin(`workermin') wmax(`workermax') categories(`categories') name(`name') graphopts(`autoopts' `graphopts')
     if `"`saving'"'!="" graph save `"`saving'"', `replace'
@@ -323,9 +339,10 @@ program define fegraph__run, rclass
     return scalar bins_requested = `bins'
     return local score "`firmscore'"
     if `bins'>0 di as text "Quantile bins: " as result `actualbins' as text " nonempty / " as result `bins' as text " requested"
+    return local style "`style'"
     return local type "`type'"
     return local input = cond(`panel',"panel","edge")
-    return local version "0.3.0"
+    return local version "0.4.0"
     return local sample "`sample'"
     di as text "fegraph: " as result el(`summary',1,11) as text " nodes; " ///
         as result el(`summary',1,12) as text " edges shown. Gross flow coverage: " ///

@@ -1,6 +1,6 @@
 v 3
 d fegraph: graphs for linked worker-firm data
-d Version 0.3.0; official Stata/Mata; syntax target Stata 16+.
+d Version 0.4.0; official Stata/Mata; syntax target Stata 16+.
 d Qualified on macOS Stata/MP 19. Private development package.
 d Johannes F. Schmieder.
 f stata/fegraph.ado

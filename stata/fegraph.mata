@@ -25,7 +25,7 @@ real colvector fegraph__which(real matrix x) {
 transmorphic matrix fegraph__pick(transmorphic matrix x, real matrix mask) {
     return(x[fegraph__which(mask),.])
 }
-real scalar fegraph__version() return(300)
+real scalar fegraph__version() return(400)
 void fegraph__fail(string scalar msg) {
     errprintf("fegraph: %s\n",msg)
     _error(198)
@@ -247,7 +247,7 @@ void fegraph__bins(struct fegraph__graph scalar g) {
     g.N=nn; g.ids=ids; g.labels=labels; g.mapping=map[g.mapping]
 }
 void fegraph__layout(struct fegraph__graph scalar g) {
-    real colvector ix,fi,wi,disp,delta,dx,dy,dist,ids
+    real colvector ix,fi,wi,disp,delta,dx,dy,dist,ids,theta,radius
     real matrix pos,force,e
     real scalar i,j,k,n,iter,temp,seed,a,b,sx,sy,r,hi,lo
     ix=fegraph__which(g.N[,9]); n=rows(ix)
@@ -283,7 +283,10 @@ void fegraph__layout(struct fegraph__graph scalar g) {
     pos=(cos(2*pi()*(0::(n-1))/n), sin(2*pi()*(0::(n-1))/n))
     if(st_local("layout")=="force" & n>1) {
         // Deterministic perturbations do not touch Stata's or Mata's RNG.
-        pos=pos+.06*(sin((1::n)*12.9898:+seed),cos((1::n)*78.233:+seed))
+        // Fill a disk instead of imposing a circular starting arrangement.
+        theta=(1::n)*(pi()*(3-sqrt(5))):+seed*.61803398875
+        radius=sqrt((1::n)/n)
+        pos=(radius:*cos(theta),radius:*sin(theta))
         disp=J(rows(g.N),1,0); disp[ix]=(1::n)
         e=fegraph__pick(g.E,g.E[,10]:==1)
         k=sqrt(4/n)
@@ -301,6 +304,9 @@ void fegraph__layout(struct fegraph__graph scalar g) {
                 r=sqrt(dx^2+dy^2)/k*sqrt(1+ln(1+e[j,3]))
                 force[a,]=force[a,]-(dx*r,dy*r); force[b,]=force[b,]+(dx*r,dy*r)
             }
+            // Mild centering limits isolate drift and the resulting compression
+            // of connected nodes when coordinates are normalized.
+            force=force-.6*pos
             temp=.12*(1-iter/(fegraph__opt("iterations")+1))
             for(i=1;i<=n;i++) {
                 r=sqrt(sum(force[i,]:^2))
@@ -710,6 +716,62 @@ real matrix fegraph__ladderpath(real rowvector a, real rowvector b, real scalar 
     return(path)
 }
 
+// Select display labels without modifying the node table or graph statistics.
+string colvector fegraph__plotlabels(struct fegraph__graph scalar g, real colvector ni, real scalar limit) {
+    string colvector labs
+    real colvector fi,ord
+    labs=g.labels[ni,.]
+    if(limit<0) return(labs)
+    fi=fegraph__which(g.N[ni,1]:==0)
+    if(rows(fi)>limit) {
+        ord=order((-g.N[ni[fi],2],ni[fi]),(1,2))
+        labs[fi[ord[limit+1..rows(ord)]],.]=J(rows(ord)-limit,1,"")
+    }
+    return(labs)
+}
+
+// Choose among eight standard Stata clock positions, avoiding nearby markers
+// and labels already placed for larger nodes. This is a display-only heuristic.
+real colvector fegraph__labelpositions(real matrix xy, string colvector labs, real colvector cls, real scalar scale) {
+    real colvector result,ix,ord,rad
+    real matrix boxes,dirs,points
+    real rowvector box,bestbox,clock
+    real scalar i,j,k,c,width,height,gap,cost,best,choice,dx,dy,overlap,span
+    result=J(rows(xy),1,3)
+    ix=fegraph__which(labs:!="")
+    if(!rows(ix)) return(result)
+    span=max((max(xy[,1])-min(xy[,1]),max(xy[,2])-min(xy[,2]),1e-8))
+    points=xy/span
+    rad=(.012:+.010*cls)*scale
+    ord=order((-cls[ix],ix),(1,2)); ix=ix[ord]
+    clock=(3,9,12,6,2,10,4,8)
+    dirs=(1,0 \ -1,0 \ 0,1 \ 0,-1 \ 1,1 \ -1,1 \ 1,-1 \ -1,-1)
+    boxes=J(0,4,.)
+    for(k=1;k<=rows(ix);k++) {
+        i=ix[k]; width=.012*min((strlen(labs[i]),80)); height=.034
+        gap=rad[i]+.012; best=.; choice=1; bestbox=J(1,4,.)
+        for(c=1;c<=8;c++) {
+            dx=dirs[c,1]; dy=dirs[c,2]
+            box=(points[i,1]+dx*(gap+width/2)-width/2,points[i,2]+dy*(gap+height/2)-height/2,0,0)
+            box[3]=box[1]+width; box[4]=box[2]+height
+            cost=c*.0001
+            for(j=1;j<=rows(xy);j++) {
+                if(j==i) continue
+                dx=max((box[1]-points[j,1],0,points[j,1]-box[3]))
+                dy=max((box[2]-points[j,2],0,points[j,2]-box[4]))
+                cost=cost+100*max((0,rad[j]+.007-sqrt(dx^2+dy^2)))
+            }
+            for(j=1;j<=rows(boxes);j++) {
+                overlap=max((0,min((box[3],boxes[j,3]))-max((box[1],boxes[j,1]))))*max((0,min((box[4],boxes[j,4]))-max((box[2],boxes[j,2]))))
+                cost=cost+1000*overlap
+            }
+            if(cost<best) { best=cost; choice=c; bestbox=box; }
+        }
+        result[i]=clock[choice]; boxes=boxes \ bestbox
+    }
+    return(result)
+}
+
 void fegraph__plot(struct fegraph__graph scalar g) {
     real colvector ix,ni,ei,nc,ns,ec,es,weight,kind,ord,vec,nodeclass,lanes
     real rowvector limits,clim,elim,wlim
@@ -755,7 +817,7 @@ void fegraph__plot(struct fegraph__graph scalar g) {
         st_local("colormin",strofreal(clim[1])); st_local("colormax",strofreal(clim[2]))
     }
     else {
-        out=J(n,17,.); labs=g.labels[ni]
+        out=J(n,17,.); labs=fegraph__plotlabels(g,ni,fegraph__opt("labeltop"))
         out[,(1,2,3)]=g.N[ni,(6,7,1)]
         nc=J(n,1,0); clim=(.,.); wlim=(.,.)
         ix=fegraph__which(g.N[ni,1]:==0)
@@ -841,5 +903,11 @@ void fegraph__plot(struct fegraph__graph scalar g) {
     fegraph__write(out,("nx","ny","nkind","ncolor","nsize","ex","ey","ax","ay","bx","by","ecolor","esize","hx","hlo","hhi","hcolor"))
     // Printable graph labels only: tables retain complete IDs/labels.
     fegraph__strings("nlabel",substr(labs,1,80))
+    if(st_local("style")=="classic") {
+        vec=J(rows(out),1,.)
+        vec[|1,1 \ n,1|]=fegraph__labelpositions(out[|1,1 \ n,2|],labs[|1,1 \ n,1|],ns,fegraph__opt("nodescale"))
+        (void) st_addvar("byte","nlabelpos")
+        st_store(.,"nlabelpos",vec)
+    }
 }
 end

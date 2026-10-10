@@ -1,8 +1,8 @@
-*! fegraph 0.3.0 09oct2026
+*! fegraph 0.4.0 09oct2026
 program define fegraph__draw
     version 16.0
     syntax , TYPE(string) EDGE(string) EDGECOLOR(string) EDGESIZE(string) STATISTIC(string) CMIN(real) CMAX(real) WMIN(real) WMAX(real) ///
-        [NODESCALE(real 1) CATEGORIES(string) NET NOLABELS NODRAW NAME(string) GRAPHOPTS(string asis)]
+        [STYLE(string) NODESCALE(real 1) CATEGORIES(string) NET NOLABELS NODRAW NAME(string) GRAPHOPTS(string asis)]
     local sequential `""68 1 84" "68 57 131" "49 104 142" "33 145 140" "53 183 121" "144 215 67" "221 218 48""'
     local diverging `""166 54 3" "217 95 14" "253 174 107" "180 180 180" "128 205 193" "53 151 143" "1 102 94""'
     // Mata writes rendering metadata into the caller's locals; retrieve via c_local in wrapper.
@@ -36,6 +36,7 @@ program define fegraph__draw
     else {
         forvalues c=0/7 {
             local color "70 135 140"
+            if "`style'"=="classic" local color "125 125 125"
             if "`edgecolor'"!="none" local color "170 170 170"
             if `c'>0 local color : word `c' of `diverging'
             forvalues s=1/4 {
@@ -43,16 +44,24 @@ program define fegraph__draw
                 if !r(N) continue
                 local width = .15 + .13*`s'
                 if "`type'"=="bipartite" local width = .06 + .04*`s'
+                local opacity 80
+                local arrowsize 1.4
+                if "`style'"=="classic" {
+                    local width = .035 + .045*`s'
+                    local opacity 65
+                    local arrowsize 1.1
+                }
                 local ++p
-                local plots `"`plots' (line ey ex if ecolor==`c' & esize==`s', cmissing(n) lcolor("`color'%80") lwidth(`width'))"'
+                local plots `"`plots' (line ey ex if ecolor==`c' & esize==`s', cmissing(n) lcolor("`color'%`opacity'") lwidth(`width'))"'
                 quietly count if ecolor==`c' & esize==`s' & !missing(ax)
                 if r(N) local ++p
-                if r(N) local plots `"`plots' (pcarrow ay ax by bx if ecolor==`c' & esize==`s', lcolor("`color'") mcolor("`color'") msize(1.4) lwidth(`width'))"'
+                if r(N) local plots `"`plots' (pcarrow ay ax by bx if ecolor==`c' & esize==`s', lcolor("`color'") mcolor("`color'") msize(`arrowsize') lwidth(`width'))"'
             }
         }
         forvalues k=0/2 {
             forvalues c=0/7 {
                 local color "160 160 160"
+                if "`style'"=="classic" local color "110 110 110"
                 if `c'>0 local color : word `c' of `sequential'
                 local symbol O
                 if `k'==2 local symbol D
@@ -86,10 +95,15 @@ program define fegraph__draw
                         local wseen "`wseen' `c'"
                     }
                     if `k'==2 & "`nolabels'"=="" local labelopt "mlabel(nlabel) mlabsize(vsmall) mlabcolor(gs4) mlabposition(6)"
+                    if "`style'"=="classic" local labelopt
                     local plots `"`plots' (scatter ny nx if nkind==`k' & ncolor==`c' & nsize==`s', msymbol(`symbol') msize(`size') mfcolor("`color'") mlcolor(white) mlwidth(thin) `labelopt')"'
                     if `addkey' local plots `"`plots' (scatter ny nx if 0, msymbol(O) msize(2) mfcolor("`color'") mlcolor(white))"'
                 }
             }
+        }
+        if "`style'"=="classic" & "`nolabels'"=="" {
+            local ++p
+            local plots `"`plots' (scatter ny nx if !missing(nkind), msymbol(i) mlabel(nlabel) mlabsize(tiny) mlabcolor(gs4) mlabvposition(nlabelpos) mlabgap(1))"'
         }
         local axes "xscale(off) yscale(off) xlabel(none) ylabel(none) xtitle( ) ytitle( ) aspect(1)"
         local title "Firm network"

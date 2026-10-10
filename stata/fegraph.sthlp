@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.0 09oct2026}{...}
+{* *! version 0.4.0 09oct2026}{...}
 {.-}
 help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 {.-}
@@ -10,7 +10,7 @@ help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 
 {pstd}
 {help fegraph##quickstart:Example} | {help fegraph##syntax:Syntax} |
-{help fegraph##views:Graph types} | {help fegraph##sample:Sample and unemployment} |
+{help fegraph##views:Graph types} | {help fegraph##classic:Classic networks} | {help fegraph##sample:Sample and unemployment} |
 {help fegraph##attributes:Appearance}
 
 {pstd}
@@ -145,6 +145,23 @@ create outside-state flows. A-U-B contributes A-U and U-B, not A-B.
 
 {marker attributes}
 {title:Attributes and visual encoding}
+{phang}{cmd:style(default|classic)} selects the appearance of a firmgraph.
+Classic uses thin gray edges, smaller markers, neutral gray nodes when no color
+attribute is supplied, and labels for the 15 largest displayed firms. Supplied
+firm/edge colors remain active; directed moves retain their arrows. It does not
+change graph counts, node sizes in the data, selection or coordinates. The
+force layout remains the default; choose {cmd:layout(circle)} explicitly for a
+circle. Other graph types accept only style(default).
+
+{phang}{cmd:labeltop(}{it:#}{cmd:)} labels at most the # largest displayed firms
+by nodesize(), with ties broken by internal ID order. It is available for
+firmgraph only. The default is all labels in style(default), or 15 in
+style(classic). Zero suppresses firm labels; an outside-state label remains.
+Use nolabels to hide every label, or labeltop(2000) to label every allowed firm.
+Classic places labels in one of eight directions to reduce collisions and draws
+them above the markers. Long labels and dense graphs may still require fewer
+labels or a larger graph. Exported labels are never truncated by labeltop().
+
 {phang}{cmd:nodecolor(}{it:vars}{cmd:)} colors firms using seven equal-width numeric
 classes. Missing attributes are gray. {cmd:categorical} instead assigns distinct
 colors to up to seven numeric category codes; encode string categories first.
@@ -161,7 +178,7 @@ represents each class, not an exact continuous area; zero sizes remain visible.
 Worker markers have a fixed small size. Outside nodes use diamonds.
 
 {phang}{cmd:nodescale(}{it:#}{cmd:)} multiplies marker diameters and the matching
-arrow clearance. Default 1; positive values up to 5 are accepted. For many bins,
+arrow clearance. Default 1, or .35 with style(classic); positive values up to 5 are accepted. For many bins,
 try {cmd:nodescale(.35) nolabels top(60)}. It changes appearance only, leaving
 sizes, score quantiles, flows and saved coordinates unchanged. Use the same
 nodescale and sizemax across panels when comparing marker areas.
@@ -262,7 +279,10 @@ Net heatmaps select unordered pairs and show their reversals together.
 {phang}{cmd:layout(force|circle|bipartite)} defaults to force for firms and
 bipartite for match graphs. Ladders and heatmaps use their data-defined coordinates.
 {cmd:seed(}{it:#}{cmd:)} and {cmd:iterations(}{it:#}{cmd:)} control reproducible force
-layout; defaults 1 and 200 (up to 2000). Layout uses no Stata/Mata random draws.
+layout; defaults 1 and 200 (up to 2000). Force layout starts from a deterministic disk and applies mild centering so
+isolates do not spread arbitrarily far from the connected graph. This changes
+force coordinates from versions before 0.4; use coordinates() to retain an earlier
+layout. Layout uses no Stata/Mata random draws.
 Layout distances have no economic units. Reciprocal arrows use opposite curves.
 
 {phang}{cmd:coordinates(}{it:nodes.dta}{cmd:)} reuses saved free-network coordinates
@@ -390,6 +410,92 @@ are excluded because unemployment is not a worker--firm match.
 {pstd}
 {stata fegraph_run manybins using fegraph.sthlp:Click to run this example}
 (your original data are restored).
+
+
+{marker classic}
+{title:Classic force-directed networks}
+{pstd}This illustrative network has twelve hubs and sixty peripheral firms.
+Each synthetic worker has jobs at two firms; edge(shared) joins those employers.
+It is a complete constructed example, not an empirical or calibrated labor market.
+All 80 firm pairs and 289 shared-worker connections are retained. Larger markers
+represent more distinct matched workers. Node position has no economic units.
+The monochrome style follows the typical hub-and-periphery appearance in
+{browse "https://noduslabs.com/research/knowledge-graphs-type-document/attachment/hitech-companies-graph-connections/":this Nodus Labs reference}.
+
+{title:Monochrome network}
+{cmd}{...}
+        preserve
+{* example_start - classic}{...}
+        clear
+        set obs 80
+        generate origin = ceil(_n/5)
+        generate destination = 12+_n
+        replace origin = _n-60 if _n>60
+        replace destination = mod(origin,12)+1 if _n>60
+        replace origin = _n-72 if _n>72
+        replace destination = origin+4 if _n>72
+        generate connections = 1+mod(_n,4)
+        replace connections = 4+mod(_n,7) if _n>60
+        expand connections
+        generate workerid = _n
+        expand 2
+        bysort workerid: generate year = _n
+        generate firmid = cond(year==1,origin,destination)
+        generate psi = (cond(firmid<=12,firmid,ceil((firmid-12)/5))-6.5)/12
+        generate str16 firmname = "Firm " + string(firmid)
+        keep workerid year firmid psi firmname
+        fegraph , worker(workerid) firm(firmid) time(year) ///
+            type(firmgraph) edge(shared) style(classic) nodesize(matches) ///
+            label(firmname) labeltop(12) iterations(600) seed(7) ///
+            name(fegraph_classic, replace) ///
+            graphopts(xsize(9) ysize(8))
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}{stata fegraph_run classic using fegraph.sthlp:Click to run this example}
+(your original data and estimates are restored).
+
+{title:Network colored by supplied firm effect}
+{cmd}{...}
+        preserve
+{* example_start - classic_color}{...}
+        clear
+        set obs 80
+        generate origin = ceil(_n/5)
+        generate destination = 12+_n
+        replace origin = _n-60 if _n>60
+        replace destination = mod(origin,12)+1 if _n>60
+        replace origin = _n-72 if _n>72
+        replace destination = origin+4 if _n>72
+        generate connections = 1+mod(_n,4)
+        replace connections = 4+mod(_n,7) if _n>60
+        expand connections
+        generate workerid = _n
+        expand 2
+        bysort workerid: generate year = _n
+        generate firmid = cond(year==1,origin,destination)
+        generate psi = (cond(firmid<=12,firmid,ceil((firmid-12)/5))-6.5)/12
+        generate str16 firmname = "Firm " + string(firmid)
+        keep workerid year firmid psi firmname
+        fegraph psi, worker(workerid) firm(firmid) time(year) ///
+            type(firmgraph) edge(shared) style(classic) nodesize(matches) ///
+            label(firmname) labeltop(12) iterations(600) seed(7) ///
+            name(fegraph_classic_color, replace) ///
+            graphopts(xsize(9) ysize(8))
+{* example_end}{...}
+        restore
+{txt}{...}
+
+{pstd}{stata fegraph_run classic_color using fegraph.sthlp:Click to run this example}
+(your original data and estimates are restored).
+
+{pstd}For your own panel, use {cmd:edge(shared)} for undirected connections
+between employers sharing workers over the selected window. This differs from
+adjacent moves: a worker seen at A, B and C connects all three pairs. Use the
+default {cmd:edge(moves)} with {cmd:time()} for directed adjacent transitions,
+and add {cmd:net} for net arrows. All variants accept {cmd:style(classic)};
+supplying a score before the comma colors firms by that score.
 
 {marker reports}
 {title:Simulation, estimation, ranking and PDF reports}
@@ -572,7 +678,7 @@ rendered cells. Captions report coverage; there is no silent component selection
 
 {pstd}Additional scalars: r(N_bins) is the number of nonempty firm bins (0 without
 aggregation); r(bins_requested) is the requested count. Macros: r(type), r(input),
-r(sample), r(score) (resolved score variables), r(version). {cmd:fegraph, version}
+r(style), r(sample), r(score) (resolved score variables), r(version). {cmd:fegraph, version}
 reports the version. {cmd:fegraph, selftest} runs a small preserving smoke test
 and returns r(passed)=1 on success. It creates a named example graph.
 

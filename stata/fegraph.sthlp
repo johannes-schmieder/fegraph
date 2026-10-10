@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.5.0 09oct2026}{...}
+{* *! version 0.6.0 09oct2026}{...}
 {.-}
 help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 {.-}
@@ -16,7 +16,7 @@ help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 {pstd}
 {help fegraph##bins:Scores and bins} | {help fegraph##selection:Selection} |
 {help fegraph##examples:Runnable examples} | {help fegraph##reports:DGP reports} |
-{help fegraph##output:Output} | {help fegraph##stored:Stored results}
+{help fegraph##animation:Animations} | {help fegraph##output:Output} | {help fegraph##stored:Stored results}
 
 {marker quickstart}
 {title:Start with a firm graph}
@@ -79,6 +79,9 @@ same broad storage type. {cmd:nodecolor()}, {cmd:nodesize()} with variables,
 {cmd:order()}, {cmd:level()}, {cmd:label()} and {cmd:effectgroup()} take one
 variable for panels or two for flows, origin first and destination second.
 All data and estimation results remain unchanged.
+
+{pstd}Add {cmd:animation(filename.html, options)} to export an animated HTML version;
+see {help fegraph##animation:Animations}.
 
 {pstd}{bf:Migration from 0.1:} move the positional firm ID into firm(), or move
 prepared endpoint IDs into origin()/destination(). Positional variables now mean
@@ -556,6 +559,99 @@ be suppressed independently through graphopts().
 {pstd}{stata fegraph_run palettes using fegraph.sthlp:Click to run this example}
 (your original data and estimates are restored).
 
+{marker animation}
+{title:Standalone HTML animations}
+{phang}{cmd:animation(}{it:filename.html}{cmd:[, }{it:options}{cmd:])} creates one
+self-contained HTML file alongside the ordinary Stata graph. Quote paths with spaces
+or commas. All animation settings, including {cmd:replace}, belong inside this option.
+Top-level replace does not authorize replacing the HTML file. {cmd:nodraw} suppresses
+the Stata graph window. Open the HTML file in a modern browser; it contains the viewer,
+styles and plotted data and makes no network requests. No Python, Node or server is required.
+
+{phang}{cmd:mode(aggregate|time)} defaults to aggregate. Aggregate motion illustrates
+the specified pooled graph, not calendar time or individual worker trajectories.
+Time mode requires time() for panels or prepared flows. Directed transitions belong
+to their arrival period after applying sample()/maxgap(). Bipartite links show observed
+jobs in each period. Shared-worker connections accumulate through the displayed period;
+a worker contributes once after first being observed at both firms. Missing jobs are
+not imputed. Unemployment follows the existing rules for the selected graph type.
+
+{pstd}Layout, selected nodes/edges, score bins and supplied attributes remain fixed
+across frames. Pooled top()/minflow()/net selection is retained: pairs with zero pooled
+net flow do not appear, even if they have offsetting period flows. Selected net pairs
+can reverse direction by period. Employment/matches/flow node sizes are period-specific;
+equal or supplied sizes stay fixed. Worker markers show observed current employment.
+Shares use full departures; panel probabilities include eligible stayers in exposure.
+Prepared probabilities are not supported in time mode because period-specific exposures
+are not provided. Prepared count/share inputs may include time() for time playback only.
+
+{phang}{cmd:theme(auto|light|dark)} defaults to the browser's system preference.
+{cmd:speed(}{it:#}{cmd:)} sets playback speed, default 1, positive and at most 20.
+The viewer provides pause/restart, period stepping/scrubbing, hover details and network
+zoom/pan. It respects reduced motion by starting paused. Particle counts are capped
+for performance without changing displayed statistical values.
+
+{phang}{cmd:title(}{it:text}{cmd:)}, {cmd:subtitle(}{it:text}{cmd:)}, and
+{cmd:note(}{it:text}{cmd:)} replace HTML annotations. {cmd:notitle},
+{cmd:nosubtitle}, {cmd:nonotes}, {cmd:nolegend}, and {cmd:nocommand} suppress them
+or the export metadata panel. These are suboptions of animation(). Native graphopts()
+applies only to the Stata graph; exporting HTML with graphopts() prints a notice.
+
+{pstd}Existing palette(), edgepalette(), limits, node scaling and label selection
+apply. Time color/size/width scales are fixed over all frames. HTML resolves bg/fg
+colors to white/black. Maximum 500 periods and two million displayed node/edge frames,
+in addition to normal graph limits. HTML contains plotted data, including worker IDs
+in bipartite graphs. r(animation), r(animation_mode), and r(N_frames) describe the export.
+Browser visual/offline-file qualification is outstanding; current checks cover licensed
+Stata generation, exported values and viewer unit execution in a DOM/Canvas mock.
+
+{title:Animate a firm network}
+{cmd}{...}
+        preserve
+{* example_start - animation}{...}
+        capture mkdir fegraph_examples
+        clear
+        set obs 120
+        generate workerid = ceil(_n/6)
+        generate year = mod(_n-1,6)+1
+        generate firmid = mod(floor((workerid-1)/3)+floor((year-1)/2),6)+1
+        generate psi = (firmid-3.5)/10
+        fegraph psi, worker(workerid) firm(firmid) time(year) ///
+            type(firmgraph) style(classic) palette(viridis) ///
+            animation("fegraph_examples/network.html", theme(auto) replace) ///
+            name(fegraph_animation, replace)
+        display "Open in a browser: " r(animation)
+{* example_end}{...}
+        restore
+{txt}{...}
+{pstd}{stata fegraph_run animation using fegraph.sthlp:Click to create this animation}
+(your original data and estimates are restored).
+
+{title:Replay a binned ladder with unemployment}
+{cmd}{...}
+        preserve
+{* example_start - animation_time}{...}
+        capture mkdir fegraph_examples
+        clear
+        set obs 120
+        generate workerid = ceil(_n/6)
+        generate year = mod(_n-1,6)+1
+        generate firmid = mod(floor((workerid-1)/3)+floor((year-1)/2),6)+1
+        generate byte unemployed = year==3 & mod(workerid,4)==0
+        replace firmid = . if unemployed
+        generate psi = (firmid-3.5)/10
+        fegraph psi, worker(workerid) firm(firmid) time(year) ///
+            type(ladder) bins(3) nonemployment(unemployed) ///
+            outsidelabel(Unemployment) ///
+            animation("fegraph_examples/ladder-time.html", mode(time) ///
+                theme(dark) speed(.5) replace) name(fegraph_time, replace)
+        display "Open in a browser: " r(animation)
+{* example_end}{...}
+        restore
+{txt}{...}
+{pstd}{stata fegraph_run animation_time using fegraph.sthlp:Click to create this time animation}
+(your original data and estimates are restored).
+
 {marker reports}
 {title:Simulation, estimation, ranking and PDF reports}
 {pstd}These optional examples require Stata 19 and installed {help fesim},
@@ -748,7 +844,7 @@ r(edgepalette_colors) contain the seven resolved colors in display order.
 and returns r(passed)=1 on success. It creates a named example graph.
 
 {title:Requirements and qualification}
-{pstd}Official Stata and Mata only. Source targets Stata 16 or newer. Licensed
+{pstd}Generation uses official Stata/Mata. Optional HTML playback uses browser JavaScript. Source targets Stata 16 or newer. Licensed
 execution has been checked on macOS Stata/MP 19; Stata 16-18 and Windows/Linux
 have not been qualified. fesim, fereg, ferank, latexlog and texpdf are optional companions, not runtime
 dependencies. The repository includes contract, scale, integration, rendering

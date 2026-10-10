@@ -1,4 +1,4 @@
-*! fegraph 0.5.0 09oct2026
+*! fegraph 0.6.0 09oct2026
 program define fegraph, rclass
     version 16.0
     // Options-only graph calls are valid; reserve only valid metadata calls.
@@ -12,8 +12,8 @@ program define fegraph, rclass
                 return scalar passed=1
                 di as result "fegraph selftest passed"
             }
-            else di as text "fegraph 0.5.0"
-            return local version "0.5.0"
+            else di as text "fegraph 0.6.0"
+            return local version "0.6.0"
             exit
         }
     }
@@ -43,8 +43,19 @@ program define fegraph__run, rclass
         BINS(integer 0) BINWEIGHT(string) DESCending LAYOUT(string) ///
         SEED(integer 1) ITERations(integer 200) MAXNodes(integer 200) MAXEdges(integer 1000) ///
         COORDinates(string) NODEFile(string) EDGEFile(string) MAPFile(string) ///
-        SAVing(string) COLORLIMITS(numlist min=2 max=2) EDGELIMITS(numlist min=2 max=2) ///
+        ANIMation(string asis) SAVing(string) COLORLIMITS(numlist min=2 max=2) EDGELIMITS(numlist min=2 max=2) ///
         SIZEMAX(real 0) WIDTHMAX(real 0) NODESCALE(string) REPLACE NAME(string) NOLABELS NODRAW GRAPHOPTS(string asis)]
+    local anim_mode
+    if `"`animation'"'!="" {
+        fegraph__animation `animation'
+        foreach opt in filename mode theme replace title subtitle note notitle nosubtitle nonotes nolegend nocommand {
+            local anim_`opt' `"`r(`opt')'"'
+        }
+        local anim_speed = r(speed)
+        quietly findfile fegraph__viewer.html
+        local anim_template `"`r(fn)'"'
+        if `"`graphopts'"'!="" di as text "animation(): graphopts() applies to the Stata graph; use title()/subtitle()/note() or notitle/nosubtitle/nonotes inside animation() for HTML."
+    }
     foreach opt in type style edge sample edgecolor edgesize statistic component binweight layout wagescale {
         local `opt' = lower(strtrim(`"``opt''"'))
     }
@@ -138,6 +149,12 @@ program define fegraph__run, rclass
     fegraph__palette `edgepalette'
     local edgepalette_name `"`r(name)'"'
     local edgepalette_colors `"`r(colors)'"'
+    if `"`animation'"'!="" {
+        fegraph__rgb `palette_colors'
+        local anim_palette `"`r(colors)'"'
+        fegraph__rgb `edgepalette_colors'
+        local anim_edgepalette `"`r(colors)'"'
+    }
     // Normalize the public score/ID interface for the data engine.
     local firmscore `varlist'
     local nscore : word count `firmscore'
@@ -190,9 +207,23 @@ program define fegraph__run, rclass
         exit 198
     }
     if (`panel' & "`flow'`exposure'`outside'"!="") | ///
-       (!`panel' & "`worker'`time'`nonemployment'`workercolor'`wage'"!="") {
+       (!`panel' & "`worker'`nonemployment'`workercolor'`wage'"!="") {
         di as error "panel and prepared-flow options cannot be mixed"
         exit 198
+    }
+    if !`panel' & "`time'"!="" & "`anim_mode'"!="time" {
+        di as error "time() on prepared flows requires animation(..., mode(time))"
+        exit 198
+    }
+    if "`anim_mode'"=="time" {
+        if "`time'"=="" {
+            di as error "animation(..., mode(time)) requires time()"
+            exit 198
+        }
+        if !`panel' & "`statistic'"=="probability" {
+            di as error "time playback of prepared probabilities needs period-specific exposures; use panel input or statistic(count|share)"
+            exit 198
+        }
     }
     if !`panel' & ("`type'"=="bipartite" | "`edge'"=="shared") {
         di as error "bipartite and shared-worker views require worker-firm records"
@@ -329,6 +360,12 @@ program define fegraph__run, rclass
         palette(`palette_colors') edgepalette(`edgepalette_colors') ///
         edgecolor(`edgecolor') edgesize(`edgesize') statistic(`statistic') ///
         nodescale(`nodescale') cmin(`colormin') cmax(`colormax') wmin(`workermin') wmax(`workermax') categories(`categories') name(`name') graphopts(`autoopts' `graphopts')
+    if `"`animation'"'!="" {
+        tempfile htmlstage
+        mata: fegraph__html(`_model', st_local("htmlstage"))
+        quietly copy `"`htmlstage'"' `"`anim_filename'"', `anim_replace'
+        di as text "HTML animation: " as result `"`anim_filename'"'
+    }
     if `"`saving'"'!="" graph save `"`saving'"', `replace'
     if `"`nodefile'"'!="" {
         quietly clear
@@ -360,10 +397,15 @@ program define fegraph__run, rclass
     return local palette_colors `"`palette_colors'"'
     return local edgepalette `"`edgepalette_name'"'
     return local edgepalette_colors `"`edgepalette_colors'"'
+    if `"`animation'"'!="" {
+        return local animation `"`anim_filename'"'
+        return local animation_mode "`anim_mode'"
+        return scalar N_frames = `anim_frames'
+    }
     return local style "`style'"
     return local type "`type'"
     return local input = cond(`panel',"panel","edge")
-    return local version "0.5.0"
+    return local version "0.6.0"
     return local sample "`sample'"
     di as text "fegraph: " as result el(`summary',1,11) as text " nodes; " ///
         as result el(`summary',1,12) as text " edges shown. Gross flow coverage: " ///

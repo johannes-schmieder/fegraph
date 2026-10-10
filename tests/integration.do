@@ -21,8 +21,10 @@ ferank firmid, worker(workerid) time(time) method(bradleyterry) ///
 local previous_eN=e(N_firms)
 fegraph rank_pct if !missing(rank_pct), firm(firmid) worker(workerid) time(time) ///
     type(ladder) level(psi_true) nodecolor(psi_true) bins(5) ///
-    effectgroup(rank_component) name(ranked_ladder, replace)
+    effectgroup(rank_component) name(ranked_ladder, replace) ///
+    animation("build/tests/ranked-ladder.html", mode(time) theme(dark) replace)
 assert e(N_firms)==`previous_eN'
+assert r(N_frames)==8
 graph export build/tests/ranked_ladder.png, width(1800) replace
 fegraph psi_true, firm(firmid) worker(workerid) time(time) type(heatmap) ///
     bins(10) statistic(share) name(fesim_heatmap, replace)

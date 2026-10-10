@@ -3,6 +3,10 @@ mata:
 struct fegraph__graph {
     // N: kind,size,color,order,level,x,y,component,shown,exposure,group
     real matrix N
+    // Animation-only dated moves, node observations, eligible origin exposures.
+    real matrix A, S, X
+    real colvector periods
+    string colvector periodlabels
     // E: from,to,gross,wage_sum,wage_n,reverse,net,value,color,shown,width
     real matrix E
     string colvector ids, labels, original
@@ -25,7 +29,7 @@ real colvector fegraph__which(real matrix x) {
 transmorphic matrix fegraph__pick(transmorphic matrix x, real matrix mask) {
     return(x[fegraph__which(mask),.])
 }
-real scalar fegraph__version() return(500)
+real scalar fegraph__version() return(600)
 void fegraph__fail(string scalar msg) {
     errprintf("fegraph: %s\n",msg)
     _error(198)
@@ -322,16 +326,25 @@ void fegraph__build(struct fegraph__graph scalar g) {
     real scalar panel,n,nf,nw,i,j,k,a,b,outid,c,dt,m,eligible,gaps,unknown,count,ng,lo,hi
     real scalar net,den,groups,maxv,valid,weight,effectchange,wagechange
     real matrix pairs,raw,p,vals,ee,info
-    real colvector wid,f,to,w,t,selected,outside,exposure,firmrows,rowsel,idx,x,y,z,ww,attr,mask,inc,rev
+    real colvector adate,wid,f,to,w,t,selected,outside,exposure,firmrows,rowsel,idx,x,y,z,ww,attr,mask,inc,rev
     string rowvector vv,opts
     string colvector keys,levels,wlevels,s,sk,groupkeys,dummy
     string scalar option,v,sz
     transmorphic scalar dict
+    g.A=J(0,6,.); g.S=J(0,3,.); g.X=J(0,3,.)
+    g.periods=J(0,1,.); g.periodlabels=J(0,1,"")
     panel=fegraph__opt("panel"); n=st_nobs(); vv=tokens(st_local("varlist"))
     selected=st_data(.,st_local("touse")); g.stats=J(1,18,0); g.stats[1]=sum(selected)
     g.type=st_local("type"); g.edge=st_local("edge"); g.net=fegraph__flag("net")
     g.statistic=st_local("statistic"); g.edgecolor=st_local("edgecolor"); g.edgesize=st_local("edgesize")
     g.directed=!(g.type=="bipartite" | g.edge=="shared")
+    if(st_local("anim_mode")=="time") {
+        t=fegraph__v(st_local("time"))
+        if(any(t:>=.)) fegraph__fail("time() must be nonmissing")
+        g.periods=uniqrows(sort(fegraph__pick(t,selected),1))
+        if(rows(g.periods)>500) fegraph__fail("animation supports at most 500 periods; select a shorter window or aggregate periods explicitly")
+        g.periodlabels=strofreal(g.periods,st_varformat(st_local("time")))
+    }
     keys=fegraph__key(vv[1]); outid=0
     if(panel) {
         outside=J(n,1,0)
@@ -371,6 +384,11 @@ void fegraph__build(struct fegraph__graph scalar g) {
             for(i=1;i<=rows(pairs);i++) inc[pairs[i,2]]=inc[pairs[i,2]]+1
         }
         g.N[,2]=inc
+        adate=J(n,1,.)
+        if(st_local("anim_mode")=="time") {
+            g.S=fegraph__pick((f,t,J(n,1,1)),(f:>0):&selected)
+            g.X=J(n,3,0)
+        }
         raw=J(max((n,1)),5,0); count=0; eligible=0; gaps=0; unknown=0
         ww=fegraph__v(st_local("wage"))
         if(st_local("wagescale")=="level") if(any(fegraph__pick((ww:<=0):&(ww:<.),selected))) fegraph__fail("level wages must be positive where observed")
@@ -383,8 +401,10 @@ void fegraph__build(struct fegraph__graph scalar g) {
                 if(dt>fegraph__opt("maxgap")) { gaps++; continue; }
                 if(f[a]==0 | f[b]==0) { unknown++; continue; }
                 eligible++; exposure[f[a]]=exposure[f[a]]+1
+                if(st_local("anim_mode")=="time") g.X[eligible,.]=(f[a],t[b],1)
                 if(f[a]==f[b]) continue
                 count++; raw[count,(1..3)]=(f[a],f[b],1)
+                adate[count]=t[b]
                 if(ww[a]<. & ww[b]<. & f[a]!=outid & f[b]!=outid) {
                     weight=ww[b]-ww[a]
                     if(st_local("wagescale")=="level") weight=100*(ww[b]/ww[a]-1)
@@ -393,20 +413,43 @@ void fegraph__build(struct fegraph__graph scalar g) {
             }
             raw=raw[|1,1 \ max((count,1)),5|]
             if(!count) raw=J(0,5,.)
+            if(st_local("anim_mode")=="time") {
+                if(count) g.A=raw,adate[1..count]
+                if(eligible) g.X=g.X[1..eligible,.]
+                else g.X=J(0,3,.)
+            }
         }
         else if(g.type=="bipartite") {
             idx=uniqrows(pairs[,1]); wid=idx; nw=rows(idx); attr=J(rows(wlevels),1,0)
             if(nw) attr[idx]=(nf+1::nf+nw)
             raw=(pairs[,2],attr[pairs[,1]],J(rows(pairs),1,1),J(rows(pairs),2,0))
+            if(st_local("anim_mode")=="time") {
+                idx=fegraph__which((f:>0):&selected)
+                g.A=(f[idx],attr[w[idx]],J(rows(idx),1,1),J(rows(idx),2,0),t[idx])
+                g.S=g.S \ (attr[w[idx]],t[idx],J(rows(idx),1,.3))
+                g.X=J(0,3,.)
+            }
         }
         else {
             info=panelsetup(pairs,1); count=0
             for(i=1;i<=rows(info);i++) { m=info[i,2]-info[i,1]+1; count=count+m*(m-1)/2; }
             if(count>5000000) fegraph__fail("shared-worker projection exceeds 5 million contributions; shorten the window or use bipartite")
-            raw=J(count,5,0); count=0
+            raw=J(count,5,0); adate=J(count,1,.); count=0
+            if(st_local("anim_mode")=="time") {
+                dict=asarray_create("real",2)
+                for(i=1;i<=n;i++) if(f[i]>0 & selected[i]) {
+                    if(!asarray_contains(dict,(w[i],f[i]))) asarray(dict,(w[i],f[i]),t[i])
+                    else asarray(dict,(w[i],f[i]),min((t[i],asarray(dict,(w[i],f[i])))))
+                }
+            }
             for(i=1;i<=rows(info);i++) for(a=info[i,1];a<=info[i,2];a++) for(b=a+1;b<=info[i,2];b++) {
                 count++; raw[count,(1..3)]=(pairs[a,2],pairs[b,2],1)
+                if(st_local("anim_mode")=="time") adate[count]=max((asarray(dict,pairs[a,.]),asarray(dict,pairs[b,.])))
             }
+        }
+        if(st_local("anim_mode")=="time" & g.edge=="shared" & g.type!="bipartite") {
+            g.A=raw,adate
+            g.X=J(0,3,.)
         }
         g.stats[(5,6,7)]=(eligible,gaps,unknown)
         g.N[,10]=exposure
@@ -427,6 +470,7 @@ void fegraph__build(struct fegraph__graph scalar g) {
         if(st_local("flow")!="") x=fegraph__v(st_local("flow"))
         if(any(x:>=.) | any(x:<0)) fegraph__fail("flow() must be finite and nonnegative")
         raw=fegraph__pick((f,to,x,J(n,2,0)),(x:>0):&(f:!=to))
+        if(st_local("anim_mode")=="time") g.A=fegraph__pick((f,to,x,J(n,2,0),t),(x:>0):&(f:!=to))
         g.N[,10]=J(nf,1,.)
         if(st_local("exposure")!="") {
             x=fegraph__v(st_local("exposure"))
@@ -489,6 +533,11 @@ void fegraph__build(struct fegraph__graph scalar g) {
         if(any(x:>=.) | rows(uniqrows(sort(x,1)))>1) fegraph__fail("effects/ranks have missing or different comparison groups; select one group or explicitly specify pooled")
     }
     if(g.type=="ladder" | fegraph__opt("bins")>0) fegraph__bins(g)
+    if(st_local("anim_mode")=="time" & fegraph__opt("bins")>0) {
+        if(rows(g.A)) { g.A[,1]=g.mapping[g.A[,1]]; g.A[,2]=g.mapping[g.A[,2]]; }
+        if(rows(g.S)) g.S[,1]=g.mapping[g.S[,1]]
+        if(rows(g.X)) g.X[,1]=g.mapping[g.X[,1]]
+    }
     // Recompute directed pair totals after aggregation; do not threshold before binning/netting.
     g.E=g.E,J(rows(g.E),6,0)
     dict=asarray_create("real",2)

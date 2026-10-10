@@ -34,7 +34,7 @@ def main():
         parser.error('Set STATA_BIN to your licensed Stata executable')
     manifest = []
     for line in (ROOT / 'fegraph.pkg').read_text().splitlines():
-        if line.startswith('f '):
+        if line.startswith(('f ', 'F ')):
             path = ROOT / line[2:].strip()
             if not path.is_file() or not path.name.startswith('fegraph'):
                 raise RuntimeError(f'Invalid package entry: {line}')
@@ -43,9 +43,9 @@ def main():
         raise RuntimeError('Empty package manifest')
     out = ROOT / 'build' / 'test-runs'
     out.mkdir(parents=True, exist_ok=True)
-    sources = [*manifest, *sorted((ROOT / 'tests').glob('*.do')), ROOT / 'examples' / 'command_gallery.do', ROOT / 'examples' / 'synthetic_panel.do', ROOT / 'examples' / 'network_panel.do', ROOT / 'examples' / 'classic_network.do', ROOT / 'examples' / 'palettes.do', ROOT / 'scripts' / 'test.py', ROOT / 'scripts' / 'check_palette_svg.py', ROOT / 'fegraph.pkg', ROOT / 'stata.toc']
+    sources = [*manifest, *sorted((ROOT / 'tests').glob('*.do')), ROOT / 'examples' / 'command_gallery.do', ROOT / 'examples' / 'synthetic_panel.do', ROOT / 'examples' / 'network_panel.do', ROOT / 'examples' / 'classic_network.do', ROOT / 'examples' / 'palettes.do', ROOT / 'scripts' / 'test.py', ROOT / 'scripts' / 'check_palette_svg.py', ROOT / 'scripts' / 'check_animation.py', ROOT / 'scripts' / 'check_animation_viewer.js', ROOT / 'examples' / 'animations.do', ROOT / 'fegraph.pkg', ROOT / 'stata.toc']
     receipt = {'source_sha256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}, 'suites': {}}
-    suites = [('smoke','FEGRAPH_SMOKE_OK'), ('contracts','FEGRAPH_CONTRACTS_OK'), ('interface','FEGRAPH_INTERFACE_OK'), ('quantiles','FEGRAPH_QUANTILES_OK'), ('advanced','FEGRAPH_ADVANCED_OK'), ('routing','FEGRAPH_ROUTING_OK'), ('manybins','FEGRAPH_MANYBINS_OK'), ('classic','FEGRAPH_CLASSIC_OK'), ('palettes','FEGRAPH_PALETTES_OK'), ('help','FEGRAPH_HELP_OK'), ('package','FEGRAPH_PACKAGE_OK'), ('gallery','FEGRAPH_GALLERY_OK')]
+    suites = [('smoke','FEGRAPH_SMOKE_OK'), ('contracts','FEGRAPH_CONTRACTS_OK'), ('interface','FEGRAPH_INTERFACE_OK'), ('quantiles','FEGRAPH_QUANTILES_OK'), ('advanced','FEGRAPH_ADVANCED_OK'), ('routing','FEGRAPH_ROUTING_OK'), ('manybins','FEGRAPH_MANYBINS_OK'), ('classic','FEGRAPH_CLASSIC_OK'), ('palettes','FEGRAPH_PALETTES_OK'), ('animation','FEGRAPH_ANIMATION_OK'), ('help','FEGRAPH_HELP_OK'), ('package','FEGRAPH_PACKAGE_OK'), ('gallery','FEGRAPH_GALLERY_OK')]
     if args.fesim:
         suites.append(('integration', 'FEGRAPH_INTEGRATION_OK'))
     if args.fereg:
@@ -72,6 +72,11 @@ def main():
             colors = subprocess.run([sys.executable, str(ROOT / 'scripts' / 'check_palette_svg.py')], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             output += '\n' + colors.stdout
             passed = colors.returncode == 0 and 'FEGRAPH_PALETTE_SVG_OK' in colors.stdout.splitlines()
+        if passed and suite == 'animation':
+            for check in ([sys.executable, str(ROOT / 'scripts' / 'check_animation.py')], [shutil.which('node') or 'node', str(ROOT / 'scripts' / 'check_animation_viewer.js')]):
+                result_check = subprocess.run(check, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                output += '\n' + result_check.stdout
+                passed = passed and result_check.returncode == 0
         destination = out / f'{suite}.log'
         destination.write_text(output + '\n' + result.stdout)
         receipt['suites'][suite] = {'passed': passed, 'log': str(destination.relative_to(ROOT))}

@@ -1,8 +1,8 @@
 # Validation and support
 
-Version 0.5.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
+Version 0.6.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
 Source targets Stata 16 syntax. No licensed Stata 16–18, Windows or Linux
-qualification is claimed. The runtime uses only official Stata and Mata.
+qualification is claimed. Generation uses official Stata/Mata; HTML playback uses browser JavaScript.
 
 ## Reproduce
 
@@ -33,6 +33,7 @@ tracked. A zero batch process exit code alone is insufficient.
 | `reports.do` | All five optional help blocks: three individual DGP PDFs, combined PDF, compact pipeline; real fesim/fereg/ferank/latexlog/texpdf, paths with spaces, state restoration and overwrite guard |
 | `classic.do` | Counts/node/edge/coordinate invariance across styles, input-order invariance, label quotas and ties, outside labels, empty graphs, option guards, directed arrows and two network renders |
 | `palettes.do` | Named/custom palettes and reversal, all four views, worker/categorical colors, invalid-input guards, unchanged exported graphs and caller state; SVG checks verify marker, legend, arrow and heatmap colors |
+| `animation.do` | All four views, aggregate/time frames, bins/outside/shared histories, rates/exposures, reversed net pairs, wage statistics, zero edges, nested paths/replacement, hostile labels, exact IDs and caller-state preservation; independent JSON and DOM/Canvas mock checks |
 | `package.do` | `net install` into an isolated local ado directory, fresh-process loading of installed ado/Mata/help, installed selftest, all four installed examples |
 | `command_gallery.do` | Four figures written as PNG and PDF, with caller data restored; visual inspection of arrowheads, labels, legends and outside-state band |
 | `integration.do` | Actual fesim AKM output, ferank Bradley–Terry percentiles/components, ranked ladder with externally supplied effects, heatmap, retained ferank estimation results and simulation RNG |
@@ -79,7 +80,7 @@ checks that worker dictionaries do not depend on Stata's value-label ceiling.
   rendering or a later file write fails, but already-written outputs can remain.
 - This version implements firm, bipartite, ladder and heatmap views. Mover event
   profiles, sorting maps and animated trajectories from the original ideas list
-  are separate potential extensions.
+  are separate potential extensions; HTML aggregate/time playback is implemented in 0.6.
 
 ## Optional reports
 
@@ -142,3 +143,18 @@ rendered colors, matching marker/legend entries, reversed assignments, arrow
 strokes/fills, and signed heatmap cells. It also compares full node and edge
 exports across palettes and checks successful/failed calls preserve data,
 estimates and RNG. The four-panel Stata gallery is build/palettes/comparison.png.
+
+## HTML animation qualification (0.6)
+
+Stata exports are checked against independently specified small histories, including
+arrival-period counts, per-period employment, cumulative shared-worker links, hidden
+destination denominators, selected/original adjacency and reversed net pairs. JSON
+parsing checks ensure labels cannot terminate the inline script and large IDs remain
+strings. Each artifact is audited for external scripts, fonts and network fetches.
+The viewer executes against a minimal DOM/Canvas mock in Node, exercising drawing,
+playback, stepping, scrubbing, theme, reset and pointer handlers with finite drawing
+arguments. This is not a browser rendering test. The browser tool rejected local
+file URLs; no browser visual or direct offline-file qualification is claimed.
+
+The runner requires Node.js for viewer unit checks (not for fegraph users). Optional
+report workflows remain qualified at 0.3 and are not part of this animation change.

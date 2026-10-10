@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0 — 2026-10-09 (private development)
+
+- Add `animation(filename.html, options)` with embedded offline HTML/Canvas output
+  for all four views, aggregate animation and actual-period playback.
+- Keep statistics in Stata/Mata; preserve pooled selection/layout/bins and retain
+  dated transitions, matches and eligible exposure for frame calculations.
+- Add nested file replacement, themes, playback speed, annotation controls,
+  frame navigation, hover details and network zoom/pan.
+- Add runnable help/gallery examples, JSON/statistical contracts and viewer unit
+  checks. Browser visual qualification remains outstanding (file-URL tool restriction).
+
 ## 0.5.0 — 2026-10-09 (private development)
 
 - Expose palette() for nodes and heatmaps and edgepalette() for effect/wage arrows,

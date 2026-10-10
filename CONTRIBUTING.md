@@ -1,14 +1,19 @@
 # Developing fegraph
 
 The authoritative installed files are in `stata/`, enumerated in `fegraph.pkg`.
-All installed basenames start with `fegraph`. The runtime uses only official
-Stata/Mata; do not require a compiler or a third-party graph package.
+All installed basenames start with `fegraph`. The viewer uses an uppercase `F`
+manifest entry so `net install` includes its HTML resource automatically. Generation uses official Stata/Mata;
+HTML playback uses ordinary browser JavaScript. Do not require an external compiler,
+server or third-party graph package. Node.js is used only for viewer unit tests.
 
 - `fegraph.ado`: syntax, private frame lifecycle, output and returned diagnostics.
 - `fegraph.mata`: ID dictionaries, matches/transitions, attributes, aggregation,
   weak components, display selection, force layout, geometry and export tables.
 - `fegraph__draw.ado`: bounded style layers and ordinary Stata `twoway` rendering.
 - `fegraph__palette.ado`: named/custom seven-color palettes, validation and reversal.
+- `fegraph__animation.ado` / `fegraph__rgb.ado`: nested HTML options and color resolution.
+- `fegraph__html.mata`: frame calculations and safe standalone JSON/HTML serialization.
+- `fegraph__viewer.html`: embedded Canvas renderer and accessible playback controls.
 - `fegraph__load.ado`: loads installed Mata source on demand.
 - `fegraph_example.ado`: preserving examples and the installation selftest.
 - `fegraph_run.ado`: extracts runnable blocks directly from the help.

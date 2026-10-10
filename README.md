@@ -5,9 +5,9 @@ heatmaps in Stata from simulated or real linked employer–employee data.
 
 It accepts firm effects, ranks and other attributes supplied by the user. It
 works alongside `fesim` and `ferank`, with explicit `worker()`/`firm()` IDs
-as in `fevc` and `feset`, without requiring any of these packages. The runtime uses official Stata and Mata only.
+as in `fevc` and `feset`, without requiring any of these packages. Generation uses official Stata/Mata; optional HTML playback uses browser JavaScript.
 
-**Version 0.5.0, private development package.** Source targets Stata 16+; licensed
+**Version 0.6.0, private development package.** Source targets Stata 16+; licensed
 execution is qualified on macOS Stata/MP 19. Other versions/platforms remain
 unqualified. There is no SSC release or selected redistribution license yet.
 
@@ -80,9 +80,71 @@ suppresses automatic titles and notes. The help includes a runnable palette
 example; `do examples/palettes.do` creates a four-panel comparison in
 `build/palettes/comparison.png`.
 
+## Standalone HTML animations
+
+```stata
+fegraph psi, worker(workerid) firm(firmid) time(year) ///
+    type(ladder) bins(20) palette(viridis) ///
+    animation("ladder.html", replace)
+
+fegraph psi, worker(workerid) firm(firmid) time(year) ///
+    type(ladder) bins(20) nonemployment(unemployed) ///
+    animation("ladder-time.html", mode(time) theme(dark) speed(.5) replace)
+```
+
+The filename and all playback settings belong inside `animation()`. Quote paths
+with spaces or commas. `replace` inside this option authorizes replacing only
+that HTML file; top-level `replace` continues to govern graph/data exports.
+The ordinary Stata graph remains available (`nodraw` suppresses its window).
+
+Double-click the HTML file to open it in a modern browser. Everything is embedded:
+Canvas viewer, styles, palettes and plotted values. There are no external scripts,
+fonts, data fetches or runtime dependencies besides Stata and a browser. The
+viewer follows the website's fe-tools appearance and supports pause/restart,
+speed, light/dark/system themes, hover details, zoom/pan for network views, and
+period stepping/scrubbing. It starts paused when reduced motion is requested.
+
+- `mode(aggregate)` is the default: animate the specified pooled graph. Moving
+  particles illustrate relative intensity, not individual workers or calendar time.
+- `mode(time)` requires `time()`. Directed moves belong to the arrival period,
+  retaining `sample()` and `maxgap()` rules. Bipartite links are observed jobs in
+  each period. Shared-worker links accumulate: each worker's contribution begins
+  when that worker has first been observed at both firms.
+- Prepared flows may supply `time()` for time mode; weights are summed per period.
+  Prepared `statistic(probability)` playback is rejected because the input does not
+  provide period-specific exposures. Panel probabilities retain eligible origin
+  exposures including stayers; shares retain all departures, including hidden edges.
+- Layout, selected nodes/edges, bin membership and supplied attributes stay fixed
+  over the full selected history. A selected net pair can reverse direction across
+  periods. Pairs with zero pooled net flow, or excluded by pooled `top()`/`minflow()`,
+  remain excluded. Node size is period-specific for employment/matches/flow;
+  supplied size variables and equal sizes remain fixed. Worker markers show current
+  observed employment. Unobserved periods/jobs are not imputed.
+- Palettes and numeric classes are preserved; time scales use all frames. Limits
+  remain configurable through the existing scale options. Heatmap zero/hidden cells
+  are neutral. Colors named `bg`/`fg` resolve to white/black for HTML.
+- Optional suboptions: `theme(auto|light|dark)`, `speed(#)` (0 < # <= 20),
+  `title(text)`, `subtitle(text)`, `note(text)`, `notitle`, `nosubtitle`, `nonotes`,
+  `nolegend`, `nocommand`. The command panel reports export metadata. Native
+  `graphopts()` applies only to the Stata graph; a notice explains this when exporting
+  HTML. Use the nested annotation suboptions for HTML text and suppression.
+
+Limits: 500 observed periods and two million displayed node/edge frames, in addition
+to existing graph limits. The viewer caps illustrative particles without changing
+values or displayed totals. The HTML contains the plotted data, including worker
+IDs for bipartite views; treat it as a data export. Stata writes through a temporary
+file before copying to the destination. Returned results: `r(animation)`,
+`r(animation_mode)` and `r(N_frames)`.
+
+`help fegraph` includes two independent clickable animation examples.
+`do examples/animations.do` creates an HTML gallery under `build/animation-gallery/`.
+Current validation includes licensed Stata exports, independent JSON count checks
+and viewer unit execution in a DOM/Canvas mock. Direct browser visual/offline-file
+qualification has not been completed; the available browser tool blocks file URLs.
+
 ## Clickable examples and DGP reports
 
-`help fegraph` has section navigation and thirteen independent, one-click examples.
+`help fegraph` has section navigation and fifteen independent, one-click examples.
 The canonical network option is `type(firmgraph)`; `type(firm)` remains an alias.
 
 For a complete report using `fesim`, `fereg`, `ferank`, `fegraph`, `latexlog` and

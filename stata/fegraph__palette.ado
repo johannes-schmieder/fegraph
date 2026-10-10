@@ -1,4 +1,4 @@
-*! fegraph 0.5.0 09oct2026
+*! fegraph 0.6.0 09oct2026
 program define fegraph__palette, rclass
     version 16.0
     syntax anything(name=spec id="palette name or seven colors"), [REVerse]

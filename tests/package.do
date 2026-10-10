@@ -11,7 +11,7 @@ which fegraph
 findfile fegraph.mata
 findfile fegraph.sthlp
 fegraph, version
-assert `"`r(version)'"'=="0.5.0"
+assert `"`r(version)'"'=="0.6.0"
 fegraph, selftest
 assert r(passed)==1
 foreach view in firmgraph bipartite ladder heatmap {
@@ -23,4 +23,7 @@ fegraph_run ladder using fegraph.sthlp
 fegraph_run classic using fegraph.sthlp
 findfile fegraph__palette.ado
 fegraph_run palettes using fegraph.sthlp
+findfile fegraph__viewer.html
+findfile fegraph__html.mata
+fegraph_run animation_time using fegraph.sthlp
 display "FEGRAPH_PACKAGE_OK"

@@ -9,7 +9,7 @@ quietly regress y original
 local b = _b[original]
 quietly datasignature
 local signature `"`r(datasignature)'"'
-foreach example in firmgraph bipartite ladder heatmap manybins classic classic_color palettes {
+foreach example in firmgraph bipartite ladder heatmap manybins classic classic_color palettes animation animation_time {
     fegraph_run `example' using fegraph.sthlp
     assert _b[original]==`b'
     quietly datasignature

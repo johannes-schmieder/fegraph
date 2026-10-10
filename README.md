@@ -97,7 +97,10 @@ with spaces or commas. `replace` inside this option authorizes replacing only
 that HTML file; top-level `replace` continues to govern graph/data exports.
 The ordinary Stata graph remains available (`nodraw` suppresses its window).
 
-Double-click the HTML file to open it in a modern browser. Everything is embedded:
+Download or save the HTML file, then open it in a modern browser. If an in-app
+preview shows controls but a blank graph, open the downloaded file in Chrome or
+another browser; the Codex file preview has shown this symptom while the same
+example works in Chrome on Android (user-confirmed). Everything is embedded:
 Canvas viewer, styles, palettes and plotted values. There are no external scripts,
 fonts, data fetches or runtime dependencies besides Stata and a browser. The
 viewer follows the website's fe-tools appearance and supports pause/restart,
@@ -142,7 +145,8 @@ Playback controls appear above the plot. Periods with no moves are explained;
 the initial panel period normally has no predecessor from which to measure a move.
 Validation includes licensed Stata exports, independent JSON count checks, viewer
 unit execution and actual browser inspection of all four gallery views through a
-loopback HTTP preview. Direct offline file opening is a separate, untested path.
+loopback HTTP preview. The user also confirmed that the downloaded example works
+in Chrome on Android; this is a reported device check, not a full Android test suite.
 See [browser validation](docs/validation.md#html-animation-qualification-06).
 
 ## Clickable examples and DGP reports

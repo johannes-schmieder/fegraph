@@ -170,7 +170,16 @@ only `build/animation-gallery/` on a loopback address and open its four HTML fil
 through HTTP in the supported browser tool. Reload after regenerating artifacts.
 Check both the first empty period and a populated period, not only page load or
 console output. The HTTP preview is a development testing step, not a fegraph user
-dependency. Direct offline file opening has not been separately qualified.
+dependency. The automated/browser-tool checks did not exercise direct file opening.
+
+The user subsequently clarified on 2026-10-10 that the blank graph occurred only
+inside the Codex app's file preview. Downloading the same HTML and opening it in
+Chrome on Android worked. This resolves the suspected Android-renderer failure
+for that example. It is a user-confirmed device check, not a complete Android
+qualification. The precise cause inside the preview has not been established;
+do not describe a particular JavaScript or CSP restriction as confirmed. Delivery
+instructions now say to download/save the HTML and open it in a browser if an
+in-app preview shows a blank graph.
 
 The runner requires Node.js for viewer unit checks (not for fegraph users). Optional
 report workflows remain qualified at 0.3 and are not part of this animation change.

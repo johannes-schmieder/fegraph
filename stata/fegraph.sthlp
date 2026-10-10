@@ -567,6 +567,9 @@ or commas. All animation settings, including {cmd:replace}, belong inside this o
 Top-level replace does not authorize replacing the HTML file. {cmd:nodraw} suppresses
 the Stata graph window. Open the HTML file in a modern browser; it contains the viewer,
 styles and plotted data and makes no network requests. No Python, Node or server is required.
+If an in-app preview shows a blank plot, download/save the HTML and open it directly
+in a browser. The downloaded example has been confirmed working in Chrome on Android
+when the Codex file preview showed a blank graph.
 
 {phang}{cmd:mode(aggregate|time)} defaults to aggregate. Aggregate motion illustrates
 the specified pooled graph, not calendar time or individual worker trajectories.
@@ -605,8 +608,9 @@ in bipartite graphs. r(animation), r(animation_mode), and r(N_frames) describe t
 Playback controls appear above the plot. An explanatory message accompanies periods
 with no moves; the first period normally has no earlier observation to compare.
 Checks cover licensed Stata generation, exported values, viewer unit execution and
-actual browser rendering/playback of the gallery over local HTTP. Direct offline
-file opening has not been separately qualified.
+actual browser rendering/playback of the gallery over local HTTP. The user also
+confirmed the downloaded example in Chrome on Android; a full Android test suite
+has not been run.
 
 {title:Animate a firm network}
 {cmd}{...}

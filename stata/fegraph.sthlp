@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.1 10oct2026}{...}
+{* *! version 0.7.0 10oct2026}{...}
 {.-}
 help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 {.-}
@@ -16,7 +16,7 @@ help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 {pstd}
 {help fegraph##bins:Scores and bins} | {help fegraph##selection:Selection} |
 {help fegraph##examples:Runnable examples} | {help fegraph##reports:DGP reports} |
-{help fegraph##animation:Animations} | {help fegraph##output:Output} | {help fegraph##stored:Stored results}
+{help fegraph##animation:Animations} | {help fegraph##eventstudy:Mover event studies} | {help fegraph##output:Output} | {help fegraph##stored:Stored results}
 
 {marker quickstart}
 {title:Start with a firm graph}
@@ -89,7 +89,7 @@ scores. Old ID-based calls are rejected with a migration message rather than gue
 
 {marker views}
 {title:Views and edge definitions}
-{phang}{cmd:type(firmgraph|bipartite|ladder|heatmap)} selects the view; default {cmd:firmgraph}.
+{phang}{cmd:type(firmgraph|bipartite|ladder|heatmap|eventstudy)} selects the view; default {cmd:firmgraph}.
 The old spelling {cmd:type(firm)} remains a compatibility alias; r(type)
 returns firmgraph for either spelling.
 Firm networks show firms and directed moves. Bipartite graphs show distinct
@@ -659,6 +659,217 @@ has not been run.
 {pstd}{stata fegraph_run animation_time using fegraph.sthlp:Click to create this time animation}
 (your original data and estimates are restored).
 
+{marker eventstudy}
+{title:Mover event studies}
+{pstd}{cmd:type(eventstudy)} plots worker wage profiles around observed employer
+changes, inspired by Figures V and VII of Card, Heining and Kline (2013),
+{it:Quarterly Journal of Economics} 128(3), 967-1015, doi:10.1093/qje/qjt006.
+These are descriptive event-weighted means, not regression coefficients or a
+causal estimator. A flat pre-profile does not establish exogenous mobility.
+
+{p 8 12 2}{cmd:fegraph} {it:firmscore}, {cmd:worker(}{it:id}{cmd:)}
+{cmd:firm(}{it:id}{cmd:)} {cmd:time(}{it:period}{cmd:)}
+{cmd:type(eventstudy) wage(}{it:outcome}{cmd:) wagescale(log)}
+{cmd:bins(4) window(-2 1)}
+
+{phang}{cmd:wage()} supplies the outcome, separately from the ranking score.
+With {cmd:wagescale(log)}, values are already log wages; with
+{cmd:wagescale(level)}, positive wage levels are plotted directly. No automatic
+logarithm, percent-change conversion, regression or residualization is performed
+in this view. Residual log wages may be supplied under wagescale(log).
+
+{phang}{cmd:window(}{it:first last}{cmd:)} defaults to {cmd:-2 1}; first must be
+negative, last nonnegative, and at most 101 periods are allowed. Period 0 is the
+first observation at the new employer. {cmd:delta(}{it:#}{cmd:)} defaults to 1
+and defines one period in the units of time(). Every window observation must be
+present exactly at arrival + event_time*delta(), selected, employed, and at the
+origin before 0 or destination from 0 onward. Windows are always balanced.
+Missing outcomes (or nonpositive wage levels) exclude the entire event.
+There is no maxgap() bridging in this view.
+
+{pstd}Candidates are adjacent selected employed observations with different known
+firm IDs. Gaps then fail the window check. Missing employers and explicit
+{cmd:nonemployment()} observations break spells; they are never assigned zero log
+wages. With sample(original), excluded original rows also break windows; default
+sample(selected) first removes them. Duplicate worker-time keys are errors.
+Annual snapshots do not establish uninterrupted job-to-job moves between dates.
+
+{phang}{cmd:bins()} defaults to 4 here (positive integer, at most 2000). Equal-firm quantiles
+use the shared Stata-percentile engine on one record per selected employed firm with an observed score, before event
+restrictions. Tied scores stay together. Missing scores are filled only from
+other selected records of the same firm; conflicting scores are errors.
+{cmd:binweight(employment)} weights firms by selected employed observations;
+{cmd:descending} reverses the score before binning. Bins remain fixed across
+arrival cohorts. Wage/profile means still weight events equally.
+
+{phang}{cmd:group(}{it:varname}{cmd:)} instead supplies positive integer group codes
+up to 2000. Omit the positional score, bins(), binweight() and descending.
+Groups may vary within firm and worker over time; the origin group is read at
+period -1 and destination at 0 and held fixed throughout that event. This permits
+externally prepared coworker-wage groups. It is not arbitrary graph aggregation
+for other fegraph views. Missing endpoint groups exclude the event.
+
+{pstd}CHK Figure V uses person-year quantiles of coworker wages, excluding the mover,
+with groups measured at the last old-job and first new-job years. That differs
+from equal-firm score bins. The coworker example below illustrates this grouping
+logic with artificial log wages; it is not a replication of their administrative
+data, wage processing or exact sample. Figure VII motivates supplied AKM scores.
+
+{phang}{cmd:normalize(}{it:period}{cmd:)} subtracts each event's own outcome at a
+period inside window(); for example normalize(-1). The default plots levels.
+Normalization occurs before averaging and calculating uncertainty.
+
+{phang}{cmd:frombins(}{it:numlist}{cmd:)} and {cmd:tobins(}{it:numlist}{cmd:)} select
+displayed groups after constructing the full event sample. {cmd:mincell(}{it:#}{cmd:)}
+defaults to 1 and hides paths with fewer qualifying events, separately by cohort.
+No events are silently sampled. More than 64 pooled paths or 16 origin panels
+requires explicit selection or fewer bins.
+
+{phang}{cmd:overlay} draws all selected paths in one plot, with destination colors
+and origin line patterns. Default is one panel per origin group. Patterns repeat
+after six origins; the seven-color palette can also repeat with many destinations.
+Use frombins()/tobins() for readable larger-bin displays. {cmd:palette()} is shared
+by the Stata and HTML renderers; graphopts() customizes the Stata graph only.
+Ordinary title(), subtitle() and note() overrides, including empty strings, apply
+to the overall figure in both panel and overlay layouts.
+
+{phang}{cmd:ci} adds pointwise intervals. {cmd:cilevel(}{it:#}{cmd:)} defaults to 95.
+Events are equally weighted; repeated moves of a worker form one cluster within
+each origin-destination/event-time cell. For N events and G workers, the mean's
+variance is G/(G-1) times the sum of squared worker sums of centered outcomes,
+divided by N squared; t critical values have G-1 degrees of freedom. Intervals are
+missing with one worker. These are not simultaneous bands, do not cluster by firm,
+and do not account for uncertainty in estimated scores or group membership.
+
+{phang}{cmd:profilefile(}{it:file.dta}{cmd:)} saves cohort, origin_bin,
+destination_bin, event_time, mean, se, lower, upper, n_events, n_workers and shown.
+A missing cohort identifies pooled profiles; dated cohorts are additionally saved
+with animation(..., mode(time)). Tables retain paths hidden by display filters.
+{cmd:eventfile(}{it:file.dta}{cmd:)} saves retained event-period observations,
+including original worker/firm IDs, arrival time, frozen groups, transformed
+outcome, cell_events, selected and shown. These files contain individual data;
+HTML embeds only displayed aggregate profiles. {cmd:replace} applies to these
+Stata outputs and saving(); HTML replacement remains nested in animation().
+
+{pstd}Other supported common options are sample(), nonemployment(), effectgroup(),
+pooled, palette(), name(), saving(), nodraw and graphopts(). The effectgroup()
+comparability check is retained. Network layout/edge/selection options and prepared
+origin()/destination() flow inputs are not applicable to event studies.
+
+{pstd}Returned results: r(N_candidates), r(N_excluded_window),
+r(N_excluded_wage), r(N_excluded_group) are sequential event-selection counts;
+r(N_events), r(N_workers) describe all retained balanced events;
+r(N_shown_events), r(N_paths) describe the pooled display. r(N_input), r(N_bins),
+r(bins_requested), r(window_start), r(window_end), r(delta), r(score), r(group),
+r(sample), r(palette), r(palette_colors), r(type) and r(version) are also returned.
+Prepared groups return bins_requested=0. Counts refer to observed events, not
+necessarily distinct people. Errors leave caller data, estimates and RNG unchanged.
+
+{title:Event-study HTML}
+{pstd}{cmd:animation(filename.html, options)} supports the same nested filenames,
+replace, themes, speed and annotation controls as the other views. In default
+{cmd:mode(aggregate)}, complete pooled profiles remain visible while a cursor
+highlights successive event periods. In {cmd:mode(time)}, complete profiles switch
+between arrival-period cohorts; only cohorts with displayed qualifying paths
+are included. This is calendar cohort comparison, not cumulative pooling or
+individual wage trajectories. r(N_frames) reports event periods or cohorts.
+
+{pstd}The standalone viewer has play/pause, restart, stepping, scrubbing, origin
+selection, destination checkboxes, panel/overlay display, hover/tap counts and
+pointwise confidence intervals. Axes and colors are fixed across frames and
+filters; turning intervals on expands axes to include their bounds. Reduced-motion
+preferences disable autoplay. No network connection, Python, Node, D3 or server is
+needed by users. Download/save the HTML and open it in a browser if an app preview
+is blank. For this view, more than two million event-period rows (including pooled
+and cohort copies) requires an explicit smaller sample or window.
+
+{title:Firm-score mover profiles}
+{cmd}{...}
+        preserve
+{* example_start - eventstudy}{...}
+        clear
+        set obs 3840
+        generate long workerid = ceil(_n/8)
+        generate year = mod(_n-1,8)+1
+        generate origin = 1+floor((workerid-1)/120)
+        generate destination = 1+mod(floor((workerid-1)/30),4)
+        generate arrival = 4+mod(workerid,3)
+        generate firmid = cond(year<arrival,origin,destination+4)
+        generate psi = cond(firmid<=4,firmid,firmid-4)/5
+        generate double lnwage = 4+psi+.12*origin+.15*sin(workerid) ///
+            +.01*year+.015*cos(workerid*year)
+        capture mkdir fegraph_examples
+        fegraph psi, worker(workerid) firm(firmid) time(year) ///
+            type(eventstudy) wage(lnwage) wagescale(log) bins(4) ci ///
+            name(fegraph_events, replace) ///
+            animation("fegraph_examples/eventstudy.html", replace)
+        graph export "fegraph_examples/eventstudy.png", width(1800) replace
+{* example_end}{...}
+        restore
+{txt}{...}
+{pstd}{stata fegraph_run eventstudy using fegraph.sthlp:Click to run this example}
+(your original data are restored).
+
+{title:Coworker-wage groups and the eight-line display}
+{cmd}{...}
+        preserve
+{* example_start - eventstudy_coworker}{...}
+        clear
+        set obs 3840
+        generate long workerid = ceil(_n/8)
+        generate year = mod(_n-1,8)+1
+        generate origin = 1+floor((workerid-1)/120)
+        generate destination = 1+mod(floor((workerid-1)/30),4)
+        generate arrival = 4+mod(workerid,3)
+        generate firmid = cond(year<arrival,origin,destination+4)
+        generate psi = cond(firmid<=4,firmid,firmid-4)/5
+        generate double lnwage = 4+psi+.12*origin+.15*sin(workerid) ///
+            +.01*year+.015*cos(workerid*year)
+        capture mkdir fegraph_examples
+        bysort firmid year: egen double wagesum = total(lnwage)
+        bysort firmid year: egen long wagecount = count(lnwage)
+        generate double coworker = (wagesum-lnwage)/(wagecount-1) if wagecount>1
+        xtile coworker_group = coworker, nq(4)
+        fegraph, worker(workerid) firm(firmid) time(year) ///
+            type(eventstudy) wage(lnwage) wagescale(log) group(coworker_group) ///
+            frombins(1 4) overlay name(fegraph_coworker, replace) ///
+            animation("fegraph_examples/eventstudy-coworker.html", replace)
+        graph export "fegraph_examples/eventstudy-coworker.png", width(1800) replace
+{* example_end}{...}
+        restore
+{txt}{...}
+{pstd}{stata fegraph_run eventstudy_coworker using fegraph.sthlp:Click to run this example}
+(your original data are restored).
+
+{title:Normalized profiles by arrival cohort}
+{cmd}{...}
+        preserve
+{* example_start - eventstudy_cohorts}{...}
+        clear
+        set obs 3840
+        generate long workerid = ceil(_n/8)
+        generate year = mod(_n-1,8)+1
+        generate origin = 1+floor((workerid-1)/120)
+        generate destination = 1+mod(floor((workerid-1)/30),4)
+        generate arrival = 4+mod(workerid,3)
+        generate firmid = cond(year<arrival,origin,destination+4)
+        generate psi = cond(firmid<=4,firmid,firmid-4)/5
+        generate double lnwage = 4+psi+.12*origin+.15*sin(workerid) ///
+            +.01*year+.015*cos(workerid*year)
+        capture mkdir fegraph_examples
+        fegraph psi, worker(workerid) firm(firmid) time(year) ///
+            type(eventstudy) wage(lnwage) wagescale(log) bins(4) ///
+            normalize(-1) frombins(1 4) overlay ci ///
+            name(fegraph_cohorts, replace) ///
+            profilefile("fegraph_examples/eventstudy-cohorts.dta") replace ///
+            animation("fegraph_examples/eventstudy-cohorts.html", mode(time) replace)
+        graph export "fegraph_examples/eventstudy-cohorts.png", width(1800) replace
+{* example_end}{...}
+        restore
+{txt}{...}
+{pstd}{stata fegraph_run eventstudy_cohorts using fegraph.sthlp:Click to run this example}
+(your original data are restored).
+
 {marker reports}
 {title:Simulation, estimation, ranking and PDF reports}
 {pstd}These optional examples require Stata 19 and installed {help fesim},
@@ -674,7 +885,8 @@ Find the companion packages at
 
 {pstd}Each report below uses 6,000 workers, 80 firms, 12 annual observations
 and a fixed seed. It estimates worker/firm wage effects with fereg, estimates
-Bradley--Terry mobility scores with ferank, and draws all four graph types,
+Bradley--Terry mobility scores with ferank, and draws all five graph types,
+including mover profiles by AKM effect, coworker wage and mobility score,
 plus a fifty-bin ladder and a ladder using the mobility score on the x-axis
 and the estimated wage effect on the y-axis. The complete workflow is installed
 as {cmd:fegraph_report.ado}; view it with {cmd:viewsource fegraph_report.ado}.
@@ -688,7 +900,8 @@ wage-posting equilibrium. Annual BM endpoint moves can be downward following an
 unobserved unemployment spell even though accepted on-the-job offers are upward.
 
 {pstd}{cmd:fegraph_report, outdir(directory) [dgp(all|akm|ladder|bm) replace view]}
-creates report.tex, report.pdf and six figure PDFs per model in that directory.
+creates report.tex, report.pdf and nine figure PDFs per model in that directory.
+Each model also has three event-study HTML files and three profile tables.
 Its parent directory must exist. Existing report/figure files require replace.
 It restores caller data, working directory and estimation results. On errors,
 partial output files can remain. r(pdf) and r(tex) give the result paths.

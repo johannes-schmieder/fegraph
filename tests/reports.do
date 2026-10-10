@@ -32,6 +32,14 @@ foreach example in report_akm report_ladder report_bm report_all pipeline {
 }
 foreach model in akm ladder bm all {
     confirm file "fegraph_examples/`model'/report.pdf"
+    if "`model'"!="all" {
+        foreach grouping in akm coworker rank {
+            foreach ext in pdf html dta {
+                confirm file "fegraph_examples/`model'/`model'-event-`grouping'.`ext'"
+                confirm file "fegraph_examples/all/`model'-event-`grouping'.`ext'"
+            }
+        }
+    }
 }
 confirm file "fegraph_examples/pipeline.pdf"
 quietly cd `"`root'"'
@@ -39,6 +47,15 @@ local location `"`c(pwd)'"'
 capture noisily fegraph_report, outdir("build/report examples/fegraph_examples/akm")
 assert _rc==602
 assert `"`c(pwd)'"'==`"`location'"'
+quietly datasignature
+assert `"`r(datasignature)'"'==`"`signature'"'
+// An existing profile table alone must also require explicit replacement.
+capture mkdir build/reporttable-guard
+save "build/reporttable-guard/akm-event-akm.dta", replace
+capture noisily fegraph_report, dgp(akm) outdir("build/reporttable-guard")
+assert _rc==602
+capture confirm file "build/reporttable-guard/report.tex"
+assert _rc==601
 quietly datasignature
 assert `"`r(datasignature)'"'==`"`signature'"'
 display "FEGRAPH_REPORTS_OK"

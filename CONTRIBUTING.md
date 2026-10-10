@@ -14,6 +14,10 @@ server or third-party graph package. Node.js is used only for viewer unit tests.
 - `fegraph__animation.ado` / `fegraph__rgb.ado`: nested HTML options and color resolution.
 - `fegraph__html.mata`: frame calculations and safe standalone JSON/HTML serialization.
 - `fegraph__viewer.html`: embedded Canvas renderer and accessible playback controls.
+- `fegraph__eventstudy.ado`: balanced mover windows, grouping, event-weighted means,
+  worker-cluster pointwise uncertainty and native panel/overlay graphs.
+- `fegraph__eventhtml.mata` / `fegraph__eventviewer.html`: standalone mover-profile
+  serialization, event-time highlighting and arrival-cohort playback.
 - `fegraph__load.ado`: loads installed Mata source on demand.
 - `fegraph_example.ado`: preserving examples and the installation selftest.
 - `fegraph_run.ado`: extracts runnable blocks directly from the help.

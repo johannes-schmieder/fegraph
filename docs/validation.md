@@ -1,6 +1,6 @@
 # Validation and support
 
-Version 0.6.1, checked 2026-10-10 on macOS with licensed Stata/MP 19.
+Version 0.7.0, checked 2026-10-10 on macOS with licensed Stata/MP 19.
 Source targets Stata 16 syntax. No licensed Stata 16–18, Windows or Linux
 qualification is claimed. Generation uses official Stata/Mata; HTML playback uses browser JavaScript.
 
@@ -29,11 +29,12 @@ tracked. A zero batch process exit code alone is insufficient.
 | `quantiles.do` | Native `xtile` reference comparisons with ties/skew/weights/descending scores, `collapse` bin means, worker-record multiplicity invariance, outside exclusion and move conservation |
 | `routing.do` | Above/below separation, shared-endpoint lanes, reciprocal arrows, input-order invariance, curved marker clearance, tied ranks, nonmonotone levels, unchanged node values/counts, and a gross-flow render |
 | `manybins.do` | 50/100/200-bin dense prepared-flow fixtures; conserved mass, node-scaling invariance, default/alias names and scale guards |
-| `help.do` | Eight native help blocks run through the installed-style parser, preserving data and estimates; missing-block failure |
+| `help.do` | Thirteen native/HTML help blocks run through the installed-style parser, preserving data and estimates; missing-block failure |
 | `reports.do` | All five optional help blocks: three individual DGP PDFs, combined PDF, compact pipeline; real fesim/fereg/ferank/latexlog/texpdf, paths with spaces, state restoration and overwrite guard |
 | `classic.do` | Counts/node/edge/coordinate invariance across styles, input-order invariance, label quotas and ties, outside labels, empty graphs, option guards, directed arrows and two network renders |
 | `palettes.do` | Named/custom palettes and reversal, all four views, worker/categorical colors, invalid-input guards, unchanged exported graphs and caller state; SVG checks verify marker, legend, arrow and heatmap colors |
 | `animation.do` | All four views, aggregate/time frames, bins/outside/shared histories, rates/exposures, reversed net pairs, wage statistics, zero edges, nested paths/replacement, hostile labels, exact IDs and caller-state preservation; independent JSON and DOM/Canvas mock checks |
+| `eventstudy.do` | Known wage paths; balanced windows and hierarchical exclusions; fixed endpoint groups; native quantile references including weights and ties; normalization; repeated-worker cluster SEs; exact string IDs; fractional time units; cohort filtering; invalid/overwrite guards; caller preservation and independent JSON checks |
 | `package.do` | `net install` into an isolated local ado directory, fresh-process loading of installed ado/Mata/help, installed selftest, all four installed examples |
 | `command_gallery.do` | Four figures written as PNG and PDF, with caller data restored; visual inspection of arrowheads, labels, legends and outside-state band |
 | `integration.do` | Actual fesim AKM output, ferank Bradley–Terry percentiles/components, ranked ladder with externally supplied effects, heatmap, retained ferank estimation results and simulation RNG |
@@ -78,9 +79,9 @@ checks that worker dictionaries do not depend on Stata's value-label ceiling.
   samples/weights are needed for comparable automatic bins across figures.
 - File exports are sequential. The original in-memory dataset is preserved if
   rendering or a later file write fails, but already-written outputs can remain.
-- This version implements firm, bipartite, ladder and heatmap views. Mover event
-  profiles, sorting maps and animated trajectories from the original ideas list
-  are separate potential extensions; HTML aggregate/time playback is implemented in 0.6.
+- This version implements firm, bipartite, ladder, heatmap and mover event-study
+  views. Sorting maps remain a separate potential extension. Mover HTML highlights
+  pooled event time or compares arrival cohorts; it does not animate individuals.
 
 ## Optional reports
 
@@ -95,8 +96,9 @@ STATA_BIN=/path/to/stata-mp python3 scripts/test.py \
 The suite executes the exact five optional blocks embedded in the help file.
 Outputs remain under ignored `build/report examples/fegraph_examples/` (the space
 in the path deliberately tests working-directory handling). Individual reports
-contain seven pages; the combined report contains nineteen, including eighteen
-figures. The report requires Stata 19, while the graph runtime still targets 16.
+contain ten pages; the combined report contains twenty-eight, including twenty-seven
+figures and nine companion event-study HTML files. Each model includes AKM-effect,
+coworker-wage and mobility-score mover profiles. The report requires Stata 19, while the graph runtime still targets 16.
 
 The 200-firm dense flow-table fixture has 39,800 directed pairs. With 60 displayed
 net arrows, 50/100/200 nonempty ladder bins completed in approximately 0.6–0.9
@@ -181,5 +183,40 @@ do not describe a particular JavaScript or CSP restriction as confirmed. Deliver
 instructions now say to download/save the HTML and open it in a browser if an
 in-app preview shows a blank graph.
 
-The runner requires Node.js for viewer unit checks (not for fegraph users). Optional
-report workflows remain qualified at 0.3 and are not part of this animation change.
+The runner requires Node.js for viewer unit checks (not for fegraph users). The
+0.6 animation change retained earlier report qualification; 0.7 requalifies all
+report workflows with the new mover profiles.
+
+## Mover profiles (0.7)
+
+Fifteen graph/integration suites plus the optional report suite qualify the
+installed 0.7 interface on macOS Stata/MP 19. The event suite uses analytic wage
+paths and an independent Python check of exported HTML means and cluster variances.
+A repeated-mover fixture has changes 1 and 2 for one worker and 6 for another:
+the event-weighted mean is 3 and the worker-cluster standard error is 2. Normalized
+profiles subtract each event's baseline before both mean and uncertainty calculations.
+Native xtile references check employment-weighted inputs; the shared percentile
+engine preserves equal-firm semantics and supports more bins than distinct scores.
+
+Cases include missing wages/groups, outside-state breaks, incomplete spells,
+selected/original sampling, fractional time units, same-bin employer changes,
+one-worker intervals, absent/suppressed cohorts, paths with spaces, HTML text
+escaping and caller data/order/estimates/RNG preservation. Native annotations
+can be overridden or suppressed on both panel and overlay graphs. Two-line notes
+avoid clipping when embedded in portrait reports. Profile exports retain hidden
+cells; HTML embeds only displayed aggregate means and counts.
+
+The self-contained gallery is `build/eventstudy-gallery/fegraph_examples/`.
+Actual reports use 6,000 workers, 80 firms and 12 annual observations for each
+AKM, ladder and BM model. The combined PDF has 28 pages and 27 figures; all nine
+new profile figures have matching standalone HTML and data tables. Event samples
+contain 5,414, 5,281 and 3,711 moves respectively under the current seeded fixtures.
+The reports preserve caller data, estimates, directory and RNG.
+
+Browser checks use the supported loopback HTTP preview and cover actual canvases,
+play/pause, restart, stepping, scrubbing, speed/theme controls, origin/destination
+filtering, panel/overlay layouts, interval display, hover/tap details and cohort
+counts. Screenshots and final artifact hashes are retained under
+`build/eventstudy-review/`. A 390-by-844 viewport checks responsive layout; it is
+not Android hardware qualification. The earlier user-confirmed download/open
+workflow remains the delivery guidance for restricted in-app previews.

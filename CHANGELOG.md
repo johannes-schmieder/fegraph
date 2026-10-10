@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.0 — 2026-10-10 (private development)
+
+- Add `type(eventstudy)` with score-first syntax, wage outcomes, fixed endpoint
+  groups, balanced event windows, exact time spacing and nonemployment breaks.
+- Preserve equal-firm score quantiles and add explicit employment weighting or
+  prepared `group()` labels for coworker-wage and time-varying classifications.
+- Add origin panels, overlaid selected paths, within-event normalization,
+  minimum cell counts, palettes and optional pointwise worker-cluster intervals.
+- Export retained event-period data and aggregate profiles with selection counts.
+- Add standalone HTML event-time highlighting and arrival-cohort playback,
+  origin/destination filters, panel/overlay controls, hover details and fixed scales.
+- Add three runnable help examples and three profile figures/HTML artifacts per
+  AKM, ladder and BM report, with supplied AKM effects, coworker groups and ranks.
+- Add known-path and repeated-worker contracts, independent JSON/variance checks,
+  annotation suppression, package checks and actual browser inspection.
+
 ## 0.6.1 — 2026-10-10 (private development)
 
 - Move HTML playback controls above the graph so they are visible on opening.

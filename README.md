@@ -1,13 +1,13 @@
 # fegraph
 
-`fegraph` draws firm networks, worker–firm match graphs, job ladders and flow
-heatmaps in Stata from simulated or real linked employer–employee data.
+`fegraph` draws firm networks, worker–firm match graphs, job ladders, flow
+heatmaps and mover event studies in Stata from simulated or real linked employer–employee data.
 
 It accepts firm effects, ranks and other attributes supplied by the user. It
 works alongside `fesim` and `ferank`, with explicit `worker()`/`firm()` IDs
 as in `fevc` and `feset`, without requiring any of these packages. Generation uses official Stata/Mata; optional HTML playback uses browser JavaScript.
 
-**Version 0.6.1, private development package.** Source targets Stata 16+; licensed
+**Version 0.7.0, private development package.** Source targets Stata 16+; licensed
 execution is qualified on macOS Stata/MP 19. Other versions/platforms remain
 unqualified. There is no SSC release or selected redistribution license yet.
 
@@ -151,7 +151,7 @@ See [browser validation](docs/validation.md#html-animation-qualification-06).
 
 ## Clickable examples and DGP reports
 
-`help fegraph` has section navigation and fifteen independent, one-click examples.
+`help fegraph` has section navigation and eighteen independent, one-click examples.
 The canonical network option is `type(firmgraph)`; `type(firm)` remains an alias.
 
 For a complete report using `fesim`, `fereg`, `ferank`, `fegraph`, `latexlog` and
@@ -163,8 +163,10 @@ fegraph_report, dgp(all) outdir("fegraph_examples/all") replace view
 ```
 
 Use `dgp(akm)`, `dgp(ladder)` or `dgp(bm)` for a single model. Each uses a fixed
-seed, 6,000 workers, 80 firms and 12 annual snapshots, and includes all four graph
-types plus a 50-bin ladder and a ladder based on the estimated mobility score.
+seed, 6,000 workers, 80 firms and 12 annual snapshots, and includes all five graph
+types, a 50-bin ladder and a ladder based on the estimated mobility score.
+Each model adds three mover profiles grouped by AKM effects, coworker wages and
+ferank scores, with standalone HTML animations and exported profile tables.
 The job-ladder DGP is AKM with `network(ladder)`; BM is the separate wage-posting
 model. Report sources and figure PDFs remain beside the final PDF.
 
@@ -211,6 +213,55 @@ work directly; add `descending` for raw ranks where 1 is best.
 `time()` is required for directed panel flows; it may be omitted for match/shared
 views. Job ladders automatically route arrows on both sides of the firm-to-firm
 chord, with separate lanes for conflicting links and reciprocal flows.
+
+## Mover event studies
+
+```stata
+fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
+    type(eventstudy) wage(lnwage) wagescale(log) bins(4) ///
+    window(-2 1) ci ///
+    animation("mover-wages.html", replace)
+```
+
+Inspired by Card, Heining and Kline (2013 QJE), Figures V and VII, this view
+plots mean worker wages before and after employer changes. Period 0 is the first
+new-job period. Every retained event has a complete window with the same old
+employer before 0 and same new employer from 0 onward. Groups are fixed at the
+last old-job/first new-job observations. Missing wages, gaps and observed
+nonemployment exclude events; they never become zero log wages.
+
+The positional variable ranks firms; `wage()` supplies the separate outcome.
+Default `bins(4)` counts each selected scored firm once, preserving ties.
+`binweight(employment)` weights quantiles by selected employment records.
+Alternatively, `group(quartile_variable)` accepts prepared endpoint groups,
+including time-varying leave-worker-out coworker-wage groups; omit the positional
+score and bins() in this case. The runnable coworker example uses person-year
+quantiles explicitly. These grouping conventions are different.
+
+- Default: one panel per origin group. `frombins(1 4) overlay` reproduces the
+  eight-path layout; `tobins()` and `mincell()` select displayed paths.
+- `normalize(-1)` subtracts each event's own pre-move outcome before averaging.
+- `ci cilevel(95)` shows pointwise intervals clustered by worker. Repeated moves
+  remain separate equally weighted events. Intervals condition on supplied groups,
+  omit firm clustering and estimated-score uncertainty, and need at least two workers.
+- `profilefile("profiles.dta") eventfile("events.dta") replace` exports means,
+  counts, uncertainty and retained event-period rows for auditing. Only aggregate
+  profiles enter the HTML; eventfile() contains individual data.
+- Default HTML playback highlights event time while retaining complete pooled
+  curves. `animation("cohorts.html", mode(time) replace)` compares arrival cohorts
+  using fixed pooled bins and axes. Controls select origins, destinations,
+  panel/overlay display, intervals, themes and playback speed.
+
+The view preserves caller data/order, estimates and RNG. It is descriptive, not a
+causal estimator. `wagescale(log)` expects already logged values; `wagescale(level)`
+plots positive wage levels directly here. The graph command estimates no firm
+scores. Up to 64 displayed paths and 16 origin panels are allowed, with no hidden
+sampling. See the help for balanced windows, `delta()`, exclusions and the SE formula.
+
+Three self-contained one-click examples are installed in the help. From a checkout,
+`do examples/eventstudy.do` writes Stata PNGs and offline HTML under
+`build/eventstudy-gallery/fegraph_examples/`. Download/save HTML and open it in a
+browser if an in-app file preview shows a blank graph.
 
 ## Prepared-flow syntax
 

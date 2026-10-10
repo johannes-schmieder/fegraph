@@ -1,4 +1,4 @@
-*! fegraph 0.6.1 10oct2026
+*! fegraph 0.7.0 10oct2026
 *! Optional reproducible teaching reports; graph runtime has no dependencies.
 program define fegraph_report, rclass
     version 19.0
@@ -17,8 +17,12 @@ program define fegraph_report, rclass
         confirm new file `"`outdir'/report.tex"'
         confirm new file `"`outdir'/report.pdf"'
         foreach model in akm ladder bm {
-            foreach figure in firmgraph bipartite ladder manybins heatmap rank {
+            foreach figure in firmgraph bipartite ladder manybins heatmap rank event-akm event-coworker event-rank {
                 confirm new file `"`outdir'/`model'-`figure'.pdf"'
+                if substr("`figure'",1,6)=="event-" {
+                    confirm new file `"`outdir'/`model'-`figure'.html"'
+                    confirm new file `"`outdir'/`model'-`figure'.dta"'
+                }
             }
         }
     }
@@ -50,7 +54,7 @@ program define fegraph_report_build
     latexlog `report': section "How to read this report"
     latexlog `report': writeln "Each model uses 6,000 workers, 80 firms and 12 annual snapshots. The models are illustrative, not empirical calibrations. The workflow is \texttt{fesim} $\rightarrow$ \texttt{fereg} $\rightarrow$ \texttt{ferank} $\rightarrow$ \texttt{fegraph}; \texttt{latexlog} writes this document and \texttt{texpdf} compiles it."
     latexlog `report': writeln "\par\medskip Firm wage effects come from a two-way worker--firm regression. Effects are centered over distinct firms; only comparisons within the connected sample are meaningful. Bradley--Terry scores use observed firm-to-firm moves. Neither estimator uses the simulation's latent truth."
-    latexlog `report': writeln "\par\medskip For each model: a firm network, a small worker--firm match graph, a ten-bin wage ladder, a fifty-bin wage ladder, a flow heatmap, and a ladder ordered by the estimated mobility score. Quantiles weight firms equally and keep ties together. Heights are bin means."
+    latexlog `report': writeln "\par\medskip For each model: a firm network, a small worker--firm match graph, a ten-bin wage ladder, a fifty-bin wage ladder, a flow heatmap, a ladder ordered by the estimated mobility score, and three mover wage profiles grouped by AKM effects, coworker wages and mobility ranks. Score quantiles weight firms equally and keep ties together. Heights are bin means."
     latexlog `report': writeln "\par\medskip Arrows follow adjacent observed states, not every continuous-time event. Unemployment is an explicit schematic node, excluded from score quantiles. It appears in the network, ten-bin wage ladder and heatmap; the match graph contains jobs only. The fifty-bin and mobility-score ladders isolate firm-to-firm moves."
     latexlog `report': writeln "\par\medskip Large ladders use smaller nodes, no labels and a limited set of arrows. Coverage captions disclose omitted flow mass. A fifty-bin ladder is a detailed summary; the heatmap is better for inspecting a dense set of connections. Curves have no economic interpretation."
     foreach model of local models {
@@ -164,6 +168,42 @@ program define fegraph_report_build
         latexlog `report': addfig, filename(`model'-rank.pdf) width(1)
         latexlog `report': writeln "\end{center}"
         latexlog `report': writeln "\noindent{\small The score before the comma now comes from ferank; level(psi) keeps estimated wage effects on the vertical axis. Ranking and wages need not agree. Scores summarize annual observed firm-to-firm flows and have no automatic causal or utility interpretation.\par}"
+
+        // Coworker scores exclude the observed worker, using firm-year log wages.
+        bysort firmid time: egen double coworker_sum=total(lnwage) if employed
+        bysort firmid time: egen long coworker_n=count(lnwage) if employed
+        generate double coworker_mean=(coworker_sum-lnwage)/(coworker_n-1) if employed & coworker_n>1
+        xtile coworker_group=coworker_mean if employed, nq(4)
+        foreach grouping in akm coworker rank {
+            local es_score psi
+            local es_options "bins(4)"
+            local es_title "Mover wages by AKM firm-effect quartile"
+            local es_caption "Equal-firm quartiles of the estimated AKM effect, formed before restricting the mover sample."
+            if "`grouping'"=="coworker" {
+                local es_score
+                local es_options "group(coworker_group)"
+                local es_title "Mover wages by coworker-wage quartile"
+                local es_caption "Person-year quartiles of the mean log wage of other workers at the same firm and date. Origin groups use period -1; destination groups use period 0. This illustrates CHK's grouping logic, not an exact replication of their data and wage processing."
+            }
+            if "`grouping'"=="rank" {
+                local es_score mobility
+                local es_title "Mover wages by firm-flow score quartile"
+                local es_caption "Equal-firm quartiles of the externally estimated Bradley--Terry score. The wage outcome remains observed log wages; mobility rankings need not order wage premiums."
+            }
+            latexlog `report': writeln "\clearpage"
+            latexlog `report': section "`title': mover profiles (`grouping')"
+            fegraph `es_score', `panel' nonemployment(unemployed) type(eventstudy) ///
+                wage(lnwage) wagescale(log) `es_options' window(-2 1) ci ///
+                `common' graphopts(xsize(9) ysize(7) title("`es_title'")) ///
+                profilefile(`model'-event-`grouping'.dta) replace ///
+                animation(`model'-event-`grouping'.html, replace title("`es_title'"))
+            local es_events=r(N_events)
+            local es_workers=r(N_workers)
+            latexlog `report': writeln "\par\begin{center}"
+            latexlog `report': addfig, filename(`model'-event-`grouping'.pdf) width(1)
+            latexlog `report': writeln "\end{center}"
+            latexlog `report': writeln "\noindent{\small `es_caption' Each path follows the same mover events for two observations at the origin and two at the destination. `es_events' events and `es_workers' workers qualify; repeated moves count as separate events. Intervals are pointwise and cluster by worker, conditional on supplied groups. Missing wages and observed unemployment break windows. These are descriptive profiles, not causal effects. Companion standalone HTML highlights event time; the exported table records all plotted values.\par}"
+        }
     }
     latexlog `report': close
     texpdf using `"`report'"', saving(`"`outdir'/report.pdf"') replace `view'

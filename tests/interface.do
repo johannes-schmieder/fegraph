@@ -27,7 +27,7 @@ restore
 fegraph, worker(workerid) firm(firmid) type(bipartite) nonemployment(unemployed) nodraw
 fegraph if time>1, worker(workerid) firm(firmid) time(time) nonemployment(unemployed) nodraw
 fegraph, version
-assert `"`r(version)'"'=="0.6.0"
+assert `"`r(version)'"'=="0.6.1"
 generate double rank_pct=100*(firmid-1)/5 if !unemployed
 fegraph rank_pct, worker(workerid) firm(firmid) time(time) type(ladder) ///
     level(psi) nodecolor(psi) nonemployment(unemployed) ///

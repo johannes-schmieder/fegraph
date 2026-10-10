@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.0 09oct2026}{...}
+{* *! version 0.6.1 10oct2026}{...}
 {.-}
 help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 {.-}
@@ -602,8 +602,11 @@ apply. Time color/size/width scales are fixed over all frames. HTML resolves bg/
 colors to white/black. Maximum 500 periods and two million displayed node/edge frames,
 in addition to normal graph limits. HTML contains plotted data, including worker IDs
 in bipartite graphs. r(animation), r(animation_mode), and r(N_frames) describe the export.
-Browser visual/offline-file qualification is outstanding; current checks cover licensed
-Stata generation, exported values and viewer unit execution in a DOM/Canvas mock.
+Playback controls appear above the plot. An explanatory message accompanies periods
+with no moves; the first period normally has no earlier observation to compare.
+Checks cover licensed Stata generation, exported values, viewer unit execution and
+actual browser rendering/playback of the gallery over local HTTP. Direct offline
+file opening has not been separately qualified.
 
 {title:Animate a firm network}
 {cmd}{...}

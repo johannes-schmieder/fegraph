@@ -194,7 +194,7 @@ void fegraph__html(struct fegraph__graph scalar g, string scalar filename) {
     while((line=fget(tplhandle))!=J(0,0,"")) {
         if(line!="<!-- FEGRAPH_DATA -->") { fput(h,line); continue; }
         fput(h,"<script type="+char(34)+"application/json"+char(34)+" id="+char(34)+"fegraph-data"+char(34)+">")
-        fput(h,"{"+char(34)+"version"+char(34)+":"+fegraph__json("0.6.0")+",")
+        fput(h,"{"+char(34)+"version"+char(34)+":"+fegraph__json("0.6.1")+",")
         for(i=1;i<=7;i++) {
             palette=("type","edge","statistic","edgecolor","edgesize","style","nodesize")
             fput(h,fegraph__json(palette[i])+":"+fegraph__json(st_local(palette[i]))+",")

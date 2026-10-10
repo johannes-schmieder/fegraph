@@ -1,6 +1,6 @@
 # Validation and support
 
-Version 0.6.0, checked 2026-10-09 on macOS with licensed Stata/MP 19.
+Version 0.6.1, checked 2026-10-10 on macOS with licensed Stata/MP 19.
 Source targets Stata 16 syntax. No licensed Stata 16–18, Windows or Linux
 qualification is claimed. Generation uses official Stata/Mata; HTML playback uses browser JavaScript.
 
@@ -153,8 +153,24 @@ parsing checks ensure labels cannot terminate the inline script and large IDs re
 strings. Each artifact is audited for external scripts, fonts and network fetches.
 The viewer executes against a minimal DOM/Canvas mock in Node, exercising drawing,
 playback, stepping, scrubbing, theme, reset and pointer handlers with finite drawing
-arguments. This is not a browser rendering test. The browser tool rejected local
-file URLs; no browser visual or direct offline-file qualification is claimed.
+arguments. A missing canvas context must produce a visible diagnostic rather
+than a blank graph. This is not a browser rendering test.
+
+On 2026-10-10, the generated four-view gallery was also opened in the Codex in-app
+browser through a loopback-only HTTP preview. Checked actual rendered canvases,
+automatic period advancement, pause/play, restart, stepping, keyboard scrubbing,
+speed/theme changes and empty-period notices, with no console errors. Browser
+screenshots are retained under ignored `build/browser-checks/`. The initial ladder
+periods have no observed moves; controls now appear above the plot and these periods
+have an explanation. Ladder axes include 0 and 100 and leave room for the outside
+label, fixing overlap visible in the browser but missed by the mock.
+
+For developer reproduction, run `do examples/animations.do` in Stata, then serve
+only `build/animation-gallery/` on a loopback address and open its four HTML files
+through HTTP in the supported browser tool. Reload after regenerating artifacts.
+Check both the first empty period and a populated period, not only page load or
+console output. The HTTP preview is a development testing step, not a fegraph user
+dependency. Direct offline file opening has not been separately qualified.
 
 The runner requires Node.js for viewer unit checks (not for fegraph users). Optional
 report workflows remain qualified at 0.3 and are not part of this animation change.

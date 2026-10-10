@@ -1,4 +1,4 @@
-*! fegraph 0.6.0 09oct2026
+*! fegraph 0.6.1 10oct2026
 program define fegraph, rclass
     version 16.0
     // Options-only graph calls are valid; reserve only valid metadata calls.
@@ -12,8 +12,8 @@ program define fegraph, rclass
                 return scalar passed=1
                 di as result "fegraph selftest passed"
             }
-            else di as text "fegraph 0.6.0"
-            return local version "0.6.0"
+            else di as text "fegraph 0.6.1"
+            return local version "0.6.1"
             exit
         }
     }
@@ -405,7 +405,7 @@ program define fegraph__run, rclass
     return local style "`style'"
     return local type "`type'"
     return local input = cond(`panel',"panel","edge")
-    return local version "0.6.0"
+    return local version "0.6.1"
     return local sample "`sample'"
     di as text "fegraph: " as result el(`summary',1,11) as text " nodes; " ///
         as result el(`summary',1,12) as text " edges shown. Gross flow coverage: " ///

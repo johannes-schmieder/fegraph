@@ -7,7 +7,7 @@ It accepts firm effects, ranks and other attributes supplied by the user. It
 works alongside `fesim` and `ferank`, with explicit `worker()`/`firm()` IDs
 as in `fevc` and `feset`, without requiring any of these packages. Generation uses official Stata/Mata; optional HTML playback uses browser JavaScript.
 
-**Version 0.6.0, private development package.** Source targets Stata 16+; licensed
+**Version 0.6.1, private development package.** Source targets Stata 16+; licensed
 execution is qualified on macOS Stata/MP 19. Other versions/platforms remain
 unqualified. There is no SSC release or selected redistribution license yet.
 
@@ -138,9 +138,12 @@ file before copying to the destination. Returned results: `r(animation)`,
 
 `help fegraph` includes two independent clickable animation examples.
 `do examples/animations.do` creates an HTML gallery under `build/animation-gallery/`.
-Current validation includes licensed Stata exports, independent JSON count checks
-and viewer unit execution in a DOM/Canvas mock. Direct browser visual/offline-file
-qualification has not been completed; the available browser tool blocks file URLs.
+Playback controls appear above the plot. Periods with no moves are explained;
+the initial panel period normally has no predecessor from which to measure a move.
+Validation includes licensed Stata exports, independent JSON count checks, viewer
+unit execution and actual browser inspection of all four gallery views through a
+loopback HTTP preview. Direct offline file opening is a separate, untested path.
+See [browser validation](docs/validation.md#html-animation-qualification-06).
 
 ## Clickable examples and DGP reports
 

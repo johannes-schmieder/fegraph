@@ -1,4 +1,4 @@
-*! fegraph 0.6.0 09oct2026
+*! fegraph 0.6.1 10oct2026
 program define fegraph__animation, rclass
     version 16.0
     syntax anything(name=filename id="HTML filename"), [MODE(string) THEME(string) ///
@@ -32,4 +32,3 @@ program define fegraph__animation, rclass
     }
     return scalar speed = `speed'
 end
-

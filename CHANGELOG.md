@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.1 — 2026-10-10 (private development)
+
+- Move HTML playback controls above the graph so they are visible on opening.
+- Explain periods with no observed moves and selected graphs with no nonzero
+  values, including the first period's missing predecessor. Keep every period
+  and its statistical values unchanged.
+- Show a visible diagnostic if startup fails, canvas is unavailable, or the
+  viewer template is opened without exported data; explain disabled JavaScript.
+- Keep ladder percentile endpoints and the unemployment label inside the plot
+  without overlapping the x-axis.
+- Qualify the generated gallery in a real browser through a local HTTP preview,
+  including playback, stepping, scrubbing, themes and all four rendered views.
+  Direct file opening is distinct from this browser check.
+
 ## 0.6.0 — 2026-10-09 (private development)
 
 - Add `animation(filename.html, options)` with embedded offline HTML/Canvas output

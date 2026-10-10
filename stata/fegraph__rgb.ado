@@ -1,4 +1,4 @@
-*! fegraph 0.6.0 09oct2026
+*! fegraph 0.6.1 10oct2026
 program define fegraph__rgb, rclass
     version 16.0
     syntax anything(name=colors)

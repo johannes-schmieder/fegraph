@@ -1,4 +1,4 @@
-*! fegraph 0.6.0 09oct2026
+*! fegraph 0.6.1 10oct2026
 program define fegraph__draw
     version 16.0
     syntax , TYPE(string) EDGE(string) EDGECOLOR(string) EDGESIZE(string) STATISTIC(string) CMIN(real) CMAX(real) WMIN(real) WMAX(real) ///

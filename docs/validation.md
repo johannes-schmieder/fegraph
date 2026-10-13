@@ -29,7 +29,7 @@ tracked. A zero batch process exit code alone is insufficient.
 | `quantiles.do` | Native `xtile` reference comparisons with ties/skew/weights/descending scores, `collapse` bin means, worker-record multiplicity invariance, outside exclusion and move conservation |
 | `routing.do` | Above/below separation, shared-endpoint lanes, reciprocal arrows, input-order invariance, curved marker clearance, tied ranks, nonmonotone levels, unchanged node values/counts, and a gross-flow render |
 | `manybins.do` | 50/100/200-bin dense prepared-flow fixtures; conserved mass, node-scaling invariance, default/alias names and scale guards |
-| `help.do` | Thirteen native/HTML help blocks run through the installed-style parser, preserving data and estimates; missing-block failure |
+| `help.do` | Stata SMCL rendering at widths 79/120, independent checks for literal directives and merged headings/paragraphs; thirteen native/HTML help blocks preserving data and estimates; missing-block failure |
 | `reports.do` | All five optional help blocks: three individual DGP PDFs, combined PDF, compact pipeline; real fesim/fereg/ferank/latexlog/texpdf, paths with spaces, state restoration and overwrite guard |
 | `classic.do` | Counts/node/edge/coordinate invariance across styles, input-order invariance, label quotas and ties, outside labels, empty graphs, option guards, directed arrows and two network renders |
 | `palettes.do` | Named/custom palettes and reversal, all four views, worker/categorical colors, invalid-input guards, unchanged exported graphs and caller state; SVG checks verify marker, legend, arrow and heatmap colors |
@@ -237,3 +237,14 @@ Installation drivers, logs and exact file hashes are saved under ignored
 including all 16 exact file hashes, the README commands and 13 non-report help
 examples. Anonymous requests retrieve the exact README, installation guide,
 manifest and preview images. Public and local receipts are stored separately.
+
+## Help rendering (2026-10-13)
+
+Explicit SMCL paragraph endings fix a reproduced rendering failure that exposed
+formatting directives and merged the syntax and later sections. The opening
+summary precedes navigation; installation instructions live in the README and
+installation guide. `help.do` now translates the help through Stata's `smcl2txt`
+renderer at widths 79 and 120. `check_help_render.py` checks for literal paragraph
+directives, missing/merged headings and distinct syntax and late-file paragraphs.
+All 18 runnable code blocks are unchanged. This checks actual Stata-rendered
+output; direct GUI Viewer inspection was unavailable while the Mac was locked.

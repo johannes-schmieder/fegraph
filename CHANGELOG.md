@@ -1,5 +1,14 @@
 # Changelog
 
+## Help formatting — 2026-10-13
+
+- Begin the help with a one-paragraph command summary; keep installation
+  instructions in the README and installation guide.
+- Explicitly end SMCL paragraphs so syntax, option descriptions and later
+  sections render with proper breaks instead of displaying formatting tags.
+- Check Stata-rendered help at two text widths, including late-file headings
+  and paragraph boundaries. Runnable example code is unchanged.
+
 ## Public repository preparation — 2026-10-13
 
 - Add direct GitHub installation instructions, a concise README with synthetic

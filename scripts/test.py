@@ -43,7 +43,7 @@ def main():
         raise RuntimeError('Empty package manifest')
     out = ROOT / 'build' / 'test-runs'
     out.mkdir(parents=True, exist_ok=True)
-    sources = [*manifest, *sorted((ROOT / 'tests').glob('*.do')), ROOT / 'examples' / 'command_gallery.do', ROOT / 'examples' / 'synthetic_panel.do', ROOT / 'examples' / 'network_panel.do', ROOT / 'examples' / 'classic_network.do', ROOT / 'examples' / 'palettes.do', ROOT / 'scripts' / 'test.py', ROOT / 'scripts' / 'check_palette_svg.py', ROOT / 'scripts' / 'check_animation.py', ROOT / 'scripts' / 'check_animation_viewer.js', ROOT / 'examples' / 'animations.do', ROOT / 'examples' / 'eventstudy.do', ROOT / 'scripts' / 'check_eventstudy.py', ROOT / 'fegraph.pkg', ROOT / 'stata.toc']
+    sources = [*manifest, *sorted((ROOT / 'tests').glob('*.do')), ROOT / 'examples' / 'command_gallery.do', ROOT / 'examples' / 'synthetic_panel.do', ROOT / 'examples' / 'network_panel.do', ROOT / 'examples' / 'classic_network.do', ROOT / 'examples' / 'palettes.do', ROOT / 'scripts' / 'test.py', ROOT / 'scripts' / 'check_palette_svg.py', ROOT / 'scripts' / 'check_animation.py', ROOT / 'scripts' / 'check_animation_viewer.js', ROOT / 'examples' / 'animations.do', ROOT / 'examples' / 'eventstudy.do', ROOT / 'scripts' / 'check_eventstudy.py', ROOT / 'scripts' / 'check_help_render.py', ROOT / 'fegraph.pkg', ROOT / 'stata.toc']
     receipt = {'source_sha256': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}, 'suites': {}}
     suites = [('smoke','FEGRAPH_SMOKE_OK'), ('contracts','FEGRAPH_CONTRACTS_OK'), ('interface','FEGRAPH_INTERFACE_OK'), ('quantiles','FEGRAPH_QUANTILES_OK'), ('advanced','FEGRAPH_ADVANCED_OK'), ('routing','FEGRAPH_ROUTING_OK'), ('manybins','FEGRAPH_MANYBINS_OK'), ('classic','FEGRAPH_CLASSIC_OK'), ('palettes','FEGRAPH_PALETTES_OK'), ('animation','FEGRAPH_ANIMATION_OK'), ('eventstudy','FEGRAPH_EVENTSTUDY_OK'), ('help','FEGRAPH_HELP_OK'), ('package','FEGRAPH_PACKAGE_OK'), ('gallery','FEGRAPH_GALLERY_OK')]
     if args.fesim:
@@ -79,6 +79,10 @@ def main():
                 passed = passed and result_check.returncode == 0
         if passed and suite == 'eventstudy':
             check = subprocess.run([sys.executable, str(ROOT / 'scripts' / 'check_eventstudy.py')], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            output += '\n' + check.stdout
+            passed = check.returncode == 0
+        if passed and suite == 'help':
+            check = subprocess.run([sys.executable, str(ROOT / 'scripts' / 'check_help_render.py')], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             output += '\n' + check.stdout
             passed = check.returncode == 0
         destination = out / f'{suite}.log'

@@ -1,6 +1,14 @@
 version 16.0
 set more off
 adopath ++ stata
+capture mkdir build
+capture mkdir build/help-render
+findfile fegraph.sthlp
+local helpfile `"`r(fn)'"'
+foreach width in 79 120 {
+    translate `"`helpfile'"' "build/help-render/help-`width'.txt", ///
+        translator(smcl2txt) linesize(`width') replace
+}
 clear
 set obs 3
 generate original = _n

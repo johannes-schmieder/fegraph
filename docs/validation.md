@@ -233,6 +233,7 @@ the installed package. The five report entry points and their implementation
 are unchanged from the full 0.7 report qualification.
 
 Installation drivers, logs and exact file hashes are saved under ignored
-`build/publication-20261013/`. The same smoke check can run against the public
-raw GitHub URL after publication; its receipt is stored separately from the
-local installation receipt.
+`build/publication-20261013/`. Fresh and replacement installs from the public raw GitHub URL also pass,
+including all 16 exact file hashes, the README commands and 13 non-report help
+examples. Anonymous requests retrieve the exact README, installation guide,
+manifest and preview images. Public and local receipts are stored separately.

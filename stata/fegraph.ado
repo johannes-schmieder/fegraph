@@ -1,4 +1,4 @@
-*! fegraph 0.7.0 10oct2026
+*! fegraph 0.8.0 13oct2026
 program define fegraph, rclass
     version 16.0
     // Options-only graph calls are valid; reserve only valid metadata calls.
@@ -12,8 +12,8 @@ program define fegraph, rclass
                 return scalar passed=1
                 di as result "fegraph selftest passed"
             }
-            else di as text "fegraph 0.7.0"
-            return local version "0.7.0"
+            else di as text "fegraph 0.8.0"
+            return local version "0.8.0"
             exit
         }
     }
@@ -40,8 +40,8 @@ program define fegraph__run, rclass
     syntax [varlist(default=none max=2)] [if] [in], _WORK(name) _MODEL(name) ///
         [WORKER(varname) FIRM(varname) ORIGIN(varname) DESTination(varname) ///
         TIME(varname numeric) FLOW(varname numeric) ///
-        TYPE(string) STYLE(string) PALETTE(string asis) EDGEPALETTE(string asis) LABELTOP(integer -1) EDGE(string) NET MAXGAP(real 1) SAMPLE(string) ///
-        CATEGORICAL NODEColor(varlist numeric) NODESize(string) ORDER(varlist numeric) ///
+        TYPE(string) STYLE(string) PALETTE(string asis) EDGEPALETTE(string asis) LABELTOP(integer -1) EDGE(string) NET GROSS MAXGAP(real 1) SAMPLE(string) ///
+        OUTCOME(varname numeric) CATEGORICAL NODEColor(varlist numeric) NODESize(string) ORDER(varlist numeric) ///
         LEVEL(varlist numeric) LABEL(varlist) WORKERCOLOR(varname numeric) ///
         EFFECTGROUP(varlist) POOLed NONEMPloyment(varname numeric) ///
         OUTSIDE(string) OUTSIDELABEL(string) WAGE(varname numeric) WAGESCALE(string) ///
@@ -67,7 +67,14 @@ program define fegraph__run, rclass
         local `opt' = lower(strtrim(`"``opt''"'))
     }
     if "`type'"=="" local type firmgraph
-    if "`type'"=="firm" local type firmgraph // compatibility alias
+    if "`net'"!="" & "`gross'"!="" {
+        di as error "choose net or gross, not both"
+        exit 198
+    }
+    if "`type'"=="bipartite" & "`edge'"!="" {
+        di as error "bipartite graphs show worker-firm matches; omit edge()"
+        exit 198
+    }
     if "`style'"=="" local style default
     if "`style'"=="classic" & `labeltop'==-1 local labeltop 15
     if !inlist("`style'","default","classic") | `labeltop'<-1 {
@@ -188,7 +195,7 @@ program define fegraph__run, rclass
         local nvar 2
     }
     else {
-        di as error "fegraph 0.2: put IDs in worker()/firm(), or origin()/destination(); positional variables now supply firm scores"
+        di as error "specify worker()/firm() for panel input, or origin()/destination() for prepared flows"
         exit 198
     }
     if `nscore'>0 & `nscore'!=`nvar' {
@@ -204,9 +211,32 @@ program define fegraph__run, rclass
         local order `firmscore'
     }
     local firmscore `order'
+    local reported_score `firmscore'
+    if "`outcome'"!="" {
+        if !`panel' {
+            di as error "outcome() requires worker-firm records; supply firm attributes for prepared flows"
+            exit 198
+        }
+        tempvar outcome_mean
+        if "`order'"=="" local order `outcome_mean'
+        if "`level'"=="" local level `outcome_mean'
+        if "`nodecolor'"=="" & "`type'"!="heatmap" local nodecolor `outcome_mean'
+    }
     if "`firmscore'"!="" {
         if "`nodecolor'"=="" & "`type'"!="heatmap" local nodecolor `firmscore'
         if "`level'"=="" local level `firmscore'
+    }
+    if "`binweight'"=="employment" & `panel' & "`time'"=="" {
+        di as error "binweight(employment) requires time() in panel data"
+        exit 198
+    }
+    if "`binweight'"=="employment" & !`panel' & inlist("`nodesize'","","flow","equal","matches","employment") {
+        di as error "prepared binweight(employment) requires supplied employment variables in nodesize()"
+        exit 198
+    }
+    if "`type'"=="heatmap" & "`nodecolor'`workercolor'`categorical'"!="" {
+        di as error "heatmap cells encode flows; use the score/order() to sort firms and palette() for flow colors"
+        exit 198
     }
     local actualbins 0
     if `panel' & "`time'"=="" & "`type'"!="bipartite" & "`edge'"!="shared" {
@@ -237,8 +267,8 @@ program define fegraph__run, rclass
         exit 198
     }
     if ("`type'"=="bipartite" | "`edge'"=="shared") & ///
-       ("`net'"!="" | "`statistic'"!="count" | "`edgecolor'"!="none" | "`edgesize'"!="flow") {
-        di as error "match graphs use undirected counts, without wage/effect edge statistics"
+       ("`net'`gross'"!="" | "`statistic'"!="count" | "`edgecolor'"!="none" | "`edgesize'"!="flow") {
+        di as error "match graphs use undirected counts; net/gross, normalized statistics and wage/effect edge styling do not apply"
         exit 198
     }
     if "`net'"!="" & ("`statistic'"!="count" | "`edgecolor'"=="wage" | "`edgesize'"=="wage") {
@@ -255,10 +285,6 @@ program define fegraph__run, rclass
     }
     if "`statistic'"=="probability" & !`panel' & "`exposure'"=="" {
         di as error "prepared-flow probabilities require exposure(): full origin exposure"
-        exit 198
-    }
-    if `bins'>0 & !inlist("`type'","ladder","heatmap") {
-        di as error "bins() is available for ladder and heatmap"
         exit 198
     }
     if "`type'"=="ladder" & "`order'"=="" {
@@ -339,11 +365,17 @@ program define fegraph__run, rclass
     quietly count if `touse'
     if !r(N) error 2000
     local copyvars `varlist' `worker' `time' `flow' `nodecolor' `sizevars' `order' `level' ///
-        `label' `effectgroup' `nonemployment' `wage' `exposure' `workercolor' `touse'
+        `label' `effectgroup' `nonemployment' `wage' `outcome' `exposure' `workercolor' `touse'
     local copyvars : list uniq copyvars
+    local copyvars : list copyvars - outcome_mean
     if "`sample'"=="original" & `panel' frame put `copyvars', into(`_work')
     else frame put `copyvars' if `touse', into(`_work')
     frame change `_work'
+    if "`outcome'"!="" {
+        local employed "!missing(`firm')"
+        if "`nonemployment'"!="" local employed "`employed' & `nonemployment'==0"
+        quietly egen double `outcome_mean'=mean(cond(`touse' & (`employed'),`outcome',.)), by(`firm')
+    }
     fegraph__load
     mata: `_model' = fegraph__new()
     mata: fegraph__build(`_model')
@@ -398,7 +430,8 @@ program define fegraph__run, rclass
     }
     return scalar N_bins = `actualbins'
     return scalar bins_requested = `bins'
-    return local score "`firmscore'"
+    return local score "`reported_score'"
+    return local outcome "`outcome'"
     if `bins'>0 di as text "Quantile bins: " as result `actualbins' as text " nonempty / " as result `bins' as text " requested"
     return local palette `"`palette_name'"'
     return local palette_colors `"`palette_colors'"'
@@ -412,7 +445,7 @@ program define fegraph__run, rclass
     return local style "`style'"
     return local type "`type'"
     return local input = cond(`panel',"panel","edge")
-    return local version "0.7.0"
+    return local version "0.8.0"
     return local sample "`sample'"
     di as text "fegraph: " as result el(`summary',1,11) as text " nodes; " ///
         as result el(`summary',1,12) as text " edges shown. Gross flow coverage: " ///

@@ -68,6 +68,7 @@ checks. The graph command itself must continue to work without these companions.
 - `README.md`: installation, quick start and examples for new users.
 - `INSTALLATION.md`: upgrades, local installation and troubleshooting.
 - `docs/usage.md`: graph semantics and longer recipes; installed help is authoritative.
+- `docs/options.md`: cross-view option matrix and aggregation contracts.
 - `examples/`: runnable galleries and their synthetic input fixtures.
 - `tests/` and `scripts/`: licensed Stata contracts and independent export checks.
 - `build/`: ignored generated results and verification evidence.

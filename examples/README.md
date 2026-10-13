@@ -93,3 +93,6 @@ directly; use the installed example runner for a preserving demonstration.
 The README images are reproduced by `classic_network.do` (`network.png`) and
 `command_gallery.do` (`ladder.png`). Generated research data, HTML exports,
 reports and test logs are not checked into the repository.
+
+The `common_options` help example uses the same score, outcome and bins across all
+five views, and writes `fegraph_examples/common-<view>.html`.

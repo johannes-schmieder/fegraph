@@ -1,4 +1,4 @@
-*! fegraph 0.7.0 10oct2026
+*! fegraph 0.8.0 13oct2026
 *! Optional reproducible teaching reports; graph runtime has no dependencies.
 program define fegraph_report, rclass
     version 19.0

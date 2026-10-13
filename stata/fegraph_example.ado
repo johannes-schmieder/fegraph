@@ -1,4 +1,4 @@
-*! fegraph 0.7.0 10oct2026
+*! fegraph 0.8.0 13oct2026
 program define fegraph_example, rclass
     version 16.0
     syntax [, TYPE(string) NODRAW]
@@ -20,7 +20,7 @@ program define fegraph_example_run, rclass
     quietly generate firm=mod(floor((worker-1)/3)+floor((time-1)/2),6)+1
     quietly generate effect=(firm-3.5)/10
     if "`type'"=="bipartite" quietly keep if worker<=6
-    fegraph effect, firm(firm) worker(worker) time(time) type(`type') nodecolor(effect) ///
+    fegraph effect, firm(firm) worker(worker) time(time) type(`type') ///
         name(fegraph_example, replace) `nodraw'
     return add
 end

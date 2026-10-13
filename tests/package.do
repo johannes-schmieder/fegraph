@@ -11,7 +11,7 @@ which fegraph
 findfile fegraph.mata
 findfile fegraph.sthlp
 fegraph, version
-assert `"`r(version)'"'=="0.7.0"
+assert `"`r(version)'"'=="0.8.0"
 fegraph, selftest
 assert r(passed)==1
 foreach view in firmgraph bipartite ladder heatmap {
@@ -19,6 +19,7 @@ foreach view in firmgraph bipartite ladder heatmap {
 }
 findfile fegraph_report.ado
 findfile fegraph_run.ado
+fegraph_run common_options using fegraph.sthlp
 fegraph_run ladder using fegraph.sthlp
 fegraph_run classic using fegraph.sthlp
 findfile fegraph__palette.ado

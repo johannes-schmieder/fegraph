@@ -1,19 +1,28 @@
-*! fegraph 0.7.0 10oct2026
+*! fegraph 0.8.0 13oct2026
 program define fegraph__eventstudy, rclass
     version 16.0
     syntax [varlist(default=none max=1 numeric)] [if] [in], _WORK(name) _MODEL(name) ///
-        WORKER(varname) FIRM(varname) TIME(varname numeric) WAGE(varname numeric) ///
-        [TYPE(string) ORDER(varname numeric) GROUP(varname numeric) BINS(string) BINWEIGHT(string) ///
+        WORKER(varname) FIRM(varname) TIME(varname numeric) ///
+        [TYPE(string) OUTCOME(varname numeric) WAGE(varname numeric) ORDER(varname numeric) GROUP(varname numeric) BINS(string) BINWEIGHT(string) ///
         WINDOW(numlist integer min=2 max=2) DELTA(real 1) SAMPLE(string) ///
         NONEMPloyment(varname numeric) EFFECTGROUP(varname) POOLED DESCending ///
         NORMALize(string) FROMBins(numlist integer >0) TOBins(numlist integer >0) ///
         OVERLAY MINCELL(integer 1) CI CILEVEL(real 95) WAGESCALE(string) ///
         PALETTE(string asis) ANIMation(string asis) PROFILEFile(string) EVENTFile(string) ///
         SAVing(string) REPLACE NAME(string) NODRAW GRAPHOPTS(string asis)]
-    if "`wagescale'"!="log" & "`wagescale'"!="level" {
-        di as error "eventstudy requires wagescale(log|level); wage() is plotted as supplied"
+    if ("`wage'"!="")+("`outcome'"!="")!=1 {
+        di as error "eventstudy requires outcome(), or wage() with wagescale(log|level)"
         exit 198
     }
+    if "`wage'"!="" & !inlist("`wagescale'","log","level") {
+        di as error "wage() requires wagescale(log|level); values are plotted as supplied"
+        exit 198
+    }
+    if "`outcome'"!="" & "`wagescale'"!="" {
+        di as error "wagescale() describes wage(); outcome() is plotted without a transformation"
+        exit 198
+    }
+    local response `outcome'`wage'
     if "`sample'"=="" local sample selected
     if !inlist("`sample'","selected","original") error 198
     if "`window'"=="" local window -2 1
@@ -31,6 +40,11 @@ program define fegraph__eventstudy, rclass
         if "`varlist'"!="" & "`varlist'"!="`order'" error 198
         local varlist `order'
     }
+    local reported_score `varlist'
+    if "`varlist'`group'"=="" & "`outcome'"!="" {
+        tempvar outcome_mean
+        local varlist `outcome_mean'
+    }
     if "`group'"!="" {
         if "`varlist'`bins'`binweight'`descending'"!="" {
             di as error "group() supplies endpoint groups; omit the score, bins(), binweight() and descending"
@@ -46,11 +60,12 @@ program define fegraph__eventstudy, rclass
         }
         if "`bins'"=="" local bins 4
         confirm integer number `bins'
-        if `bins'<1 | `bins'>2000 error 198
+        if `bins'<0 | `bins'>2000 error 198
         local bins_requested `bins'
         if "`binweight'"=="" local binweight firm
         if !inlist("`binweight'","firm","employment") error 198
         local grouping "Firm-score quantiles (`binweight' weighted)"
+        if `bins'==0 local grouping "Individual firms ordered by score"
     }
     if `"`palette'"'=="" local palette viridis
     fegraph__palette `palette'
@@ -78,8 +93,9 @@ program define fegraph__eventstudy, rclass
         }
     }
     marksample touse, novarlist
-    local copyvars `worker' `firm' `time' `wage' `varlist' `group' `nonemployment' `effectgroup' `touse'
+    local copyvars `worker' `firm' `time' `response' `varlist' `group' `nonemployment' `effectgroup' `touse'
     local copyvars : list uniq copyvars
+    local copyvars : list copyvars - outcome_mean
     if "`sample'"=="original" frame put `copyvars', into(`_work')
     else frame put `copyvars' if `touse', into(`_work')
     frame change `_work'
@@ -100,12 +116,17 @@ program define fegraph__eventstudy, rclass
         assert inlist(`nonemployment',0,1)
         quietly replace `employed'=0 if `nonemployment'==1
     }
+    if "`outcome_mean'"!="" {
+        quietly egen double `outcome_mean'=mean(cond(`touse' & `employed',`outcome',.)), by(`fid')
+    }
     if "`effectgroup'"!="" & "`pooled'"=="" {
         tempvar eg
         quietly egen byte `eg'=tag(`effectgroup') if `touse' & `employed' & !missing(`effectgroup')
+        quietly count if `touse' & `employed' & missing(`effectgroup')
+        local missing_group=r(N)
         quietly count if `eg'
-        if r(N)>1 {
-            di as error "multiple effectgroup() values; restrict to comparable effects or explicitly specify pooled"
+        if r(N)>1 | `missing_group'>0 {
+            di as error "missing or multiple effectgroup() values; restrict to comparable effects or explicitly specify pooled"
             exit 459
         }
     }
@@ -131,10 +152,18 @@ program define fegraph__eventstudy, rclass
         if "`binweight'"=="firm" quietly replace `fw'=1
         sort `fmin' `fid'
         quietly generate int `qtag'=.
+        if `bins'==0 {
+            quietly replace `qtag'=sum(`tag') if `tag'
+            quietly summarize `qtag', meanonly
+            if r(max)>2000 {
+                di as error "more than 2000 firm groups; use bins()"
+                exit 198
+            }
+        }
         // Shared quantile engine also handles more requested bins than firms.
         // It uses native Stata percentile cutpoints and never splits tied scores.
         fegraph__load
-        mata: st_store(., st_local("qtag"), st_local("tag"), ///
+        if `bins'>0 mata: st_store(., st_local("qtag"), st_local("tag"), ///
             fegraph__quantiles(st_data(.,st_local("fmin"),st_local("tag")), ///
             st_data(.,st_local("fw"),st_local("tag")),strtoreal(st_local("bins"))))
         quietly bysort `fid': egen int `q'=max(`qtag')
@@ -177,7 +206,7 @@ program define fegraph__eventstudy, rclass
         quietly replace `good'=0 if `wid'[_n+(`k')]!=`wid' | ///
             missing(`time'[_n+(`k')]) | abs((`time'[_n+(`k')]-`time')/`delta'-(`k'))>1e-7 | ///
             !`employed'[_n+(`k')] | `fid'[_n+(`k')]!=`whichfirm' | `touse'[_n+(`k')]!=1
-        quietly generate double `yy'=`wage'[_n+(`k')]
+        quietly generate double `yy'=`response'[_n+(`k')]
         quietly replace `validw'=0 if missing(`yy')
         if "`wagescale'"=="level" quietly replace `validw'=0 if `yy'<=0
         if "`normalize'"=="`k'" local baseline `yy'
@@ -185,13 +214,13 @@ program define fegraph__eventstudy, rclass
     quietly count if `candidate' & !`good'
     local N_excluded_window=r(N)
     quietly count if `good' & !`validw'
-    local N_excluded_wage=r(N)
+    local N_excluded_outcome=r(N)
     quietly count if `good' & `validw' & missing(`og',`dg')
     local N_excluded_group=r(N)
     quietly keep if `good' & `validw' & !missing(`og',`dg')
     local N_events=_N
     if !`N_events' {
-        di as error "no balanced mover events: `N_candidates' candidates; `N_excluded_window' window, `N_excluded_wage' wage, `N_excluded_group' group exclusions"
+        di as error "no balanced mover events: `N_candidates' candidates; `N_excluded_window' window, `N_excluded_outcome' outcome, `N_excluded_group' group exclusions"
         exit 2000
     }
     if _N*`span'*(1+("`anim_mode'"=="time"))>2000000 {
@@ -286,6 +315,10 @@ program define fegraph__eventstudy, rclass
     local ytitle = cond("`wagescale'"=="log","Mean log wage","Mean wage")
     if "`normalize'"!="" local ytitle "Mean change from period `normalize'"
     local title "Mover wage profiles"
+    if "`outcome'"!="" {
+        local title "Mover outcome profiles"
+        if "`normalize'"=="" local ytitle "Mean `outcome'"
+    }
     local subtitle "`grouping'; balanced window `pre' to `post'"
     local count_note "`N_shown_events' of `N_events' balanced events shown; `N_workers' workers in full event sample."
     local method_note "Descriptive means."
@@ -365,15 +398,16 @@ program define fegraph__eventstudy, rclass
         xtitle("Periods from move (0 = first new-job period)") ytitle("`ytitle'") ///
         legend(order(`legend') cols(2) size(small)) `nodraw' `graphopts'
     if `"`saving'"'!="" graph save `"`saving'"', `replace'
-    foreach field in N_input N_candidates N_excluded_window N_excluded_wage N_excluded_group N_events N_shown_events N_workers N_bins N_paths bins_requested {
+    foreach field in N_input N_candidates N_excluded_window N_excluded_outcome N_excluded_group N_events N_shown_events N_workers N_bins N_paths bins_requested {
         return scalar `field'=``field''
     }
     return scalar window_start=`pre'
     return scalar window_end=`post'
     return scalar delta=`delta'
     return local type eventstudy
-    return local version "0.7.0"
-    return local score "`varlist'"
+    return local version "0.8.0"
+    return local score "`reported_score'"
+    return local outcome "`response'"
     return local group "`group'"
     return local palette `"`palette_name'"'
     return local palette_colors `"`palette_colors'"'

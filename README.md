@@ -24,7 +24,7 @@ The graph command does not estimate these attributes or require those packages.
 - Optional DGP reports require Stata 19 and the companion packages listed
   [below](#simulation-reports).
 
-Version **0.7.0**. See [validation](docs/validation.md) for tested behavior and limits.
+Version **0.8.0**. See [validation](docs/validation.md) for tested behavior and limits.
 
 ## Installation
 
@@ -58,7 +58,7 @@ fegraph_run ladder using fegraph.sthlp
 fegraph_run eventstudy using fegraph.sthlp
 ```
 
-The help contains **18 runnable examples**, including coworker-wage quartiles,
+The help contains **19 runnable examples**, including coworker-wage quartiles,
 color palettes and simulated DGP reports. HTML and other saved example outputs
 go into `fegraph_examples/` in Stata's current working directory.
 See the [example index](examples/README.md).
@@ -71,7 +71,7 @@ Identify workers and firms explicitly with `worker()` and `firm()`.
 ```stata
 * Directed net worker flows; color firms by their supplied wage effect
 fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
-    type(firmgraph) net style(classic)
+    type(firmgraph) bins(10) net style(classic)
 
 * Deciles of the firm score, with net flows between them
 fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
@@ -82,7 +82,8 @@ fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
     type(heatmap) bins(4) statistic(share)
 
 * Worker–firm matches; start with a small selected sample
-fegraph if workerid <= 20, worker(workerid) firm(firmid) type(bipartite)
+fegraph psi_hat if workerid <= 20, worker(workerid) firm(firmid) ///
+    type(bipartite) bins(4) outcome(lnwage)
 
 * Mean log wages around employer changes, grouped by firm-score quartile
 fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
@@ -91,7 +92,10 @@ fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
 ```
 
 `bins()` forms score quantiles with one observation per selected firm by default;
-ties stay together. Firm scores must be constant within firm. Mover profiles
+ties stay together. All five graph types support bins(). Firm scores must be constant within firm.
+Use explicit `outcome(lnwage)` to compute firm means for color/height and, if no
+score is supplied, ordering. Eventstudy plots that outcome over event time.
+See the [cross-view option matrix](docs/options.md) for shared and view-specific options. Mover profiles
 also accept `group()` for prepared, potentially time-varying coworker groups.
 
 Directed flows require unique worker–time observations. Missing employers break

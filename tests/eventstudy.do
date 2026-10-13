@@ -79,7 +79,7 @@ replace group=. if worker==3 & year==2
 replace unemployed=1 if worker==4 & year==2
 fegraph, `opts' group(group) nonemployment(unemployed) nodraw
 assert r(N_candidates)==31 & r(N_events)==28
-assert r(N_excluded_window)==1 & r(N_excluded_wage)==1 & r(N_excluded_group)==1
+assert r(N_excluded_window)==1 & r(N_excluded_outcome)==1 & r(N_excluded_group)==1
 restore
 // Quantiles agree with native xtile and retain ties, including sparse labels.
 preserve
@@ -121,7 +121,7 @@ merge m:1 firm using `weighted_reference', keep(master match) nogen
 assert origin_bin==reference
 restore
 // All validation failures preserve caller state.
-foreach bad in "window(0 1)" "window(-2 -1)" "delta(0)" "bins(0)" "normalize(5)" "frombins(9)" "mincell(0)" "net" "group(group)" {
+foreach bad in "window(0 1)" "window(-2 -1)" "delta(0)" "bins(-1)" "normalize(5)" "frombins(9)" "mincell(0)" "net" "group(group)" {
     capture noisily fegraph score, `opts' `bad' nodraw
     assert _rc==198
 }

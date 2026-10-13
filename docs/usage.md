@@ -126,8 +126,8 @@ loopback HTTP preview. See [browser validation](validation.md#html-animation-qua
 
 ## Clickable examples and DGP reports
 
-`help fegraph` has section navigation and eighteen independent, one-click examples.
-The canonical network option is `type(firmgraph)`; `type(firm)` remains an alias.
+`help fegraph` has section navigation and nineteen independent, one-click examples.
+The network option is `type(firmgraph)`.
 
 For a complete report using `fesim`, `fereg`, `ferank`, `fegraph`, `latexlog` and
 `texpdf` (Stata 19 and the optional companion packages must be installed):
@@ -177,7 +177,11 @@ fegraph psi_hat, worker(workerid) firm(firmid) time(year) ///
     type(heatmap) bins(10) statistic(share)
 ```
 
-The score supplies ordering and default firm color/ladder height. `level()` and
+The score supplies ordering and default firm color/ladder height.
+`outcome(lnwage)` explicitly computes selected employed-row firm means; these
+replace default color/height and supply ordering if the score is omitted.
+It does not estimate a firm effect. In eventstudy, outcome() plots individual
+values and can use the same pooled firm means for grouping. `level()` and
 `nodecolor()` can specify different attributes. Heatmap color always shows flows.
 `order()` is an equivalent explicit alternative to the positional score;
 conflicting specifications are errors. Scores must be numeric and constant
@@ -205,7 +209,10 @@ employer before 0 and same new employer from 0 onward. Groups are fixed at the
 last old-job/first new-job observations. Missing wages, gaps and observed
 nonemployment exclude events; they never become zero log wages.
 
-The positional variable ranks firms; `wage()` supplies the separate outcome.
+The positional variable ranks firms; `outcome()` supplies a general outcome.
+`wage()` with `wagescale()` supplies wage-specific labels and validation; choose
+exactly one input. With outcome() and no score/group(), pooled firm means rank
+firms. `bins(0)` keeps firms separate, subject to profile display limits.
 Default `bins(4)` counts each selected scored firm once, preserving ties.
 `binweight(employment)` weights quantiles by selected employment records.
 Alternatively, `group(quartile_variable)` accepts prepared endpoint groups,
@@ -258,7 +265,7 @@ restore
 The optional positional scores and supplied endpoint attributes take two
 variables, origin then destination. The ID options identify the endpoints.
 `flow()` retains its `ferank` meaning: a nonnegative count/weight variable;
-without it, each row contributes one move. `net` selects net flows. Numeric
+without it, each row contributes one move. `net` selects net flows; `gross` explicitly requests the default gross flows. Numeric
 and string IDs are supported. Panel and prepared-flow ID options cannot mix.
 
 ## Choose the economic meaning
@@ -291,16 +298,20 @@ job upstream when workers hold multiple simultaneous jobs.
 
 `bins(10)` forms score deciles, using **one observation per selected firm** by
 default. `bins(4)` forms quartiles; `bins(1)` pools all firms; `bins(0)` retains
-individual firms. This works for ladders and heatmaps. The cutpoint convention
+individual firms. This works for all five views, including bipartite and eventstudy.
+Eventstudy defaults to four bins; other views default to individual firms.
+Bipartite workers remain individual nodes. The cutpoint convention
 matches Stata's default [`xtile`](https://www.stata.com/manuals/dpctile.pdf).
 Equal scores stay together and boundary ties enter the lower bin. Empty bins
 are omitted (labels retain their quantile numbers); `r(N_bins)` reports the
 actual count, which may be smaller than requested. Unemployment stays separate.
 
 `binweight(employment)` explicitly requests weighted quantiles and weighted bin
-means using node sizes (mean employment by default for panels). Firm scores,
+means using mean panel employment, independently of node sizing. For prepared
+flows, supply employment values in nodesize(). Firm scores,
 levels and colors are averaged within bins; sizes/exposures and gross moves
-are summed. Bin boundaries are computed after firm selection and before edge
+are summed for flow views. Shared-worker and bipartite bin links instead
+count distinct workers. Bin boundaries are computed after firm selection and before edge
 filtering. There is no automatic binning by equal-width score intervals.
 
 For large data, use quantile bins, `component()`, `ego()`/`steps()`, `minflow()` or

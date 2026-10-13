@@ -27,13 +27,13 @@ void fegraph__eventhtml(string scalar filename) {
     while((line=fget(t))!=J(0,0,"")) {
         if(line!="<!-- FEGRAPH_DATA -->") { fput(h,line); continue; }
         fput(h,"<script type="+char(34)+"application/json"+char(34)+" id="+char(34)+"fegraph-data"+char(34)+">")
-        fput(h,"{"+fegraph__json("type")+":"+fegraph__json("eventstudy")+","+fegraph__json("version")+":"+fegraph__json("0.7.0")+",")
+        fput(h,"{"+fegraph__json("type")+":"+fegraph__json("eventstudy")+","+fegraph__json("version")+":"+fegraph__json("0.8.0")+",")
         fput(h,fegraph__json("title")+":"+fegraph__json(title)+","+fegraph__json("subtitle")+":"+fegraph__json(subtitle)+","+fegraph__json("note")+":"+fegraph__json(note)+",")
         keys=("mode","theme","speed")
         for(i=1;i<=cols(keys);i++) fput(h,fegraph__json(keys[i])+":"+fegraph__json(st_local("anim_"+keys[i]))+",")
         keys=("ytitle","grouping","wagescale","normalize")
         for(i=1;i<=cols(keys);i++) fput(h,fegraph__json(keys[i])+":"+fegraph__json(st_local(keys[i]))+",")
-        keys=("pre","post","delta","mincell","cilevel","N_events","N_workers","N_shown_events","N_candidates","N_excluded_window","N_excluded_wage","N_excluded_group")
+        keys=("pre","post","delta","mincell","cilevel","N_events","N_workers","N_shown_events","N_candidates","N_excluded_window","N_excluded_outcome","N_excluded_group")
         for(i=1;i<=cols(keys);i++) fput(h,fegraph__json(keys[i])+":"+fegraph__num(strtoreal(st_local(keys[i])))+",")
         fput(h,fegraph__json("overlay")+":"+fegraph__num(st_local("overlay")!="")+","+fegraph__json("ci")+":"+fegraph__num(st_local("ci")!="")+",")
         fput(h,fegraph__json("legend")+":"+fegraph__num(st_local("anim_nolegend")=="")+","+fegraph__json("command")+":"+fegraph__num(st_local("anim_nocommand")=="")+",")

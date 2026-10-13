@@ -39,12 +39,11 @@ foreach scale in 0 -1 5.1 . {
         type(ladder) bins(50) top(60) nodescale(`scale') nodraw
     assert _rc==198
 }
-// Canonical default and compatibility alias return the same public name.
-foreach alias in firmgraph firm {
-    fegraph origin_score destination_score, `args' type(`alias') ///
-        top(1) iterations(1) nodraw
-    assert "`r(type)'"=="firmgraph"
-}
+// Canonical type name and invalid graph names.
+fegraph origin_score destination_score, `args' type(firmgraph) top(1) iterations(1) nodraw
+assert "`r(type)'"=="firmgraph"
+capture noisily fegraph origin_score destination_score, `args' type(firm) nodraw
+assert _rc==198
 fegraph origin_score destination_score, `args' top(1) iterations(1) nodraw
 assert "`r(type)'"=="firmgraph"
 display "FEGRAPH_MANYBINS_OK"

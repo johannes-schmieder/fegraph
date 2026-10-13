@@ -1,6 +1,6 @@
 version 16.0
 mata:
-real scalar fegraph__htmlversion() return(600)
+real scalar fegraph__htmlversion() return(800)
 // JSON text must not terminate the inline script, even for malicious labels.
 string scalar fegraph__json(string scalar s) {
     s=subinstr(s,char(92),char(92)+char(92))
@@ -170,6 +170,7 @@ void fegraph__html(struct fegraph__graph scalar g, string scalar filename) {
     if(g.type=="ladder") title="Job ladder"
     if(g.type=="bipartite") title="Worker–firm matches"
     if(g.type=="heatmap") title="Worker flows"
+    if(g.type=="heatmap" & !g.directed) title="Shared-worker connections"
     if(st_local("anim_title")!="") title=st_local("anim_title")
     if(fegraph__flag("anim_notitle")) title=""
     subtitle=fegraph__choose(g.net,"Net flows","Gross flows")
@@ -194,7 +195,7 @@ void fegraph__html(struct fegraph__graph scalar g, string scalar filename) {
     while((line=fget(tplhandle))!=J(0,0,"")) {
         if(line!="<!-- FEGRAPH_DATA -->") { fput(h,line); continue; }
         fput(h,"<script type="+char(34)+"application/json"+char(34)+" id="+char(34)+"fegraph-data"+char(34)+">")
-        fput(h,"{"+char(34)+"version"+char(34)+":"+fegraph__json("0.7.0")+",")
+        fput(h,"{"+char(34)+"version"+char(34)+":"+fegraph__json("0.8.0")+",")
         for(i=1;i<=7;i++) {
             palette=("type","edge","statistic","edgecolor","edgesize","style","nodesize")
             fput(h,fegraph__json(palette[i])+":"+fegraph__json(st_local(palette[i]))+",")

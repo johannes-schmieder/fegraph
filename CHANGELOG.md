@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.0 — 2026-10-13
+
+- Extend score-quantile bins to firmgraph and bipartite; eventstudy also accepts
+  bins(0). Shared-worker bin pairs and worker-bin matches count each worker once.
+- Add outcome() across all views: explicit pooled firm means for network defaults
+  and sorting, individual outcome profiles for eventstudy. Supplied scores and
+  explicit level/color remain independent. General outcomes can be zero/negative.
+- Add explicit gross alongside net for directed flow views; reject ambiguous or
+  undefined combinations. Remove obsolete graph spellings and migration paths.
+- Sort bipartite/circle layouts by score; separate panel employment bin weights
+  from node sizing. Make equal/match/flow bin sizes follow their stated definitions.
+- Document the cross-view option matrix and add a runnable five-view example.
+- Add independent aggregation, outcome, state-preservation and HTML frame checks.
+
 ## Help formatting — 2026-10-13
 
 - Begin the help with a one-paragraph command summary; keep installation
@@ -80,7 +94,7 @@
 
 ## 0.3.0 — 2026-10-09 (private development)
 
-- Name the network view `type(firmgraph)`; preserve `firm` as a compatibility alias.
+- Name the network view `type(firmgraph)`.
 - Add `nodescale()` with consistent arrow clearance for larger ladders.
 - Add navigable ferank-style help, ten independently runnable example blocks,
   a preserving example runner, and optional six-command DGP PDF reports.
@@ -91,14 +105,14 @@
 
 - Move panel IDs into `worker()`/`firm()` and prepared-flow IDs into
   `origin()`/`destination()`. Optional positional variables now supply firm scores.
-  Reject legacy ID calls with a migration message; this is a breaking interface change.
+  Require explicit panel or endpoint ID options.
 - Use the score for ordering and default firm color/level, retaining explicit
   overrides and `order()` as an alternative. Allow score-free network calls.
 - Define `bins(#)` using score-quantile cutpoints matching default Stata `xtile`
   on one row per firm. Keep ties together and unemployment outside the bins;
   retain explicit employment weighting and original nonempty quantile labels.
 - Return requested/actual bin counts and resolved score variables. Add independent
-  native-`xtile` comparisons, syntax contracts, migrated examples and help.
+  native-`xtile` comparisons, syntax contracts, examples and help.
 
 ## 0.1.0 — 2026-10-09 (private development)
 

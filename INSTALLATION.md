@@ -50,9 +50,7 @@ An earlier development checkout added with `adopath ++` can shadow your newly
 installed copy. Remove that specific temporary path or start a fresh Stata
 session; do not delete unrelated Ado files.
 
-Since version 0.2, positional variables supply scores. Put old positional firm
-IDs in `firm()`, and prepared-flow endpoints in `origin()`/`destination()`.
-The canonical network name is `type(firmgraph)`; `type(firm)` remains an alias.
+The network view is `type(firmgraph)`.
 
 ## Local installation
 

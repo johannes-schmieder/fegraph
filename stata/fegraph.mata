@@ -10,7 +10,7 @@ struct fegraph__graph {
     // E: from,to,gross,wage_sum,wage_n,reverse,net,value,color,shown,width
     real matrix E
     string colvector ids, labels, original
-    real colvector mapping
+    real colvector mapping, nodemap, binweights
     real rowvector stats
     string scalar type, edge, statistic, edgecolor, edgesize
     real scalar directed, net
@@ -29,7 +29,7 @@ real colvector fegraph__which(real matrix x) {
 transmorphic matrix fegraph__pick(transmorphic matrix x, real matrix mask) {
     return(x[fegraph__which(mask),.])
 }
-real scalar fegraph__version() return(600)
+real scalar fegraph__version() return(800)
 void fegraph__fail(string scalar msg) {
     errprintf("fegraph: %s\n",msg)
     _error(198)
@@ -61,12 +61,14 @@ real colvector fegraph__code(string colvector s, string colvector levels) {
     return(out)
 }
 real matrix fegraph__sum(real matrix e) {
-    real matrix p
+    real matrix p,s
     if (!rows(e)) return(J(0,5,.))
-    e=sort(e,(1,2))
-    if(rows(e)>1) p=panelsetup(runningsum(1 \ ((e[2..rows(e),1]:!=e[1..rows(e)-1,1]):|(e[2..rows(e),2]:!=e[1..rows(e)-1,2]))),1)
-    if(rows(e)==1) p=(1,1)
-    return(e[p[,1],(1,2)],panelsum(e[,(3..5)],p))
+    // Mata arguments are references: do not reorder contribution rows whose
+    // worker IDs or dates are held separately by the caller.
+    s=sort(e,(1,2))
+    if(rows(s)>1) p=panelsetup(runningsum(1 \ ((s[2..rows(s),1]:!=s[1..rows(s)-1,1]):|(s[2..rows(s),2]:!=s[1..rows(s)-1,2]))),1)
+    if(rows(s)==1) p=(1,1)
+    return(s[p[,1],(1,2)],panelsum(s[,(3..5)],p))
 }
 real colvector fegraph__attribute(real colvector id, real colvector val, real scalar n, string scalar what) {
     real colvector out
@@ -196,7 +198,7 @@ void fegraph__bins(struct fegraph__graph scalar g) {
     if(fegraph__flag("descending")) p=p[rows(p)::1]
     ix=ix[p]; weights=J(n,1,1)
     if(st_local("binweight")=="employment") {
-        weights=g.N[ix,2]
+        weights=g.binweights[ix]
         if(any(weights:>=.) | any(weights:<0) | sum(weights)==0) fegraph__fail("bin weights must have a positive finite total")
     }
     total=sum(weights); cum=0; ranks=J(n,1,0); map=(1::rows(g.N))
@@ -248,7 +250,7 @@ void fegraph__bins(struct fegraph__graph scalar g) {
     ee=g.E[,(1..5)]
     if(rows(ee)) { ee[,1]=map[ee[,1]]; ee[,2]=map[ee[,2]]; }
     g.E=fegraph__sum(ee)
-    g.N=nn; g.ids=ids; g.labels=labels; g.mapping=map[g.mapping]
+    g.N=nn; g.ids=ids; g.labels=labels; g.mapping=map[g.mapping]; g.nodemap=map
 }
 void fegraph__layout(struct fegraph__graph scalar g) {
     real colvector ix,fi,wi,disp,delta,dx,dy,dist,ids,theta,radius
@@ -277,8 +279,17 @@ void fegraph__layout(struct fegraph__graph scalar g) {
         g.N[ix,6]=(1::n); g.N[ix,7]=(1::n)
         return
     }
+    // Scores order visible firms in data-ordered network layouts. Force
+    // positions continue to encode connectivity, not economic rank.
+    if(st_local("order")!="" & anyof(("circle","bipartite"),st_local("layout"))) {
+        fi=fegraph__which((g.N[,1]:==0):&g.N[,9])
+        delta=g.N[fi,4]
+        if(fegraph__flag("descending")) delta=-delta
+        fi=fi[order((delta,fi),(1,2))]
+        ix=fi \ fegraph__which((g.N[,1]:!=0):&g.N[,9])
+    }
     if(st_local("layout")=="bipartite") {
-        fi=fegraph__which((g.N[,1]:==0):&g.N[,9]); wi=fegraph__which((g.N[,1]:==1):&g.N[,9])
+        fi=fegraph__pick(ix,g.N[ix,1]:==0); wi=fegraph__which((g.N[,1]:==1):&g.N[,9])
         if(rows(fi)) { g.N[fi,6]=(0::(rows(fi)-1))/max((1,rows(fi)-1)); g.N[fi,7]=J(rows(fi),1,1); }
         if(rows(wi)) { g.N[wi,6]=(0::(rows(wi)-1))/max((1,rows(wi)-1)); g.N[wi,7]=J(rows(wi),1,0); }
         return
@@ -325,7 +336,7 @@ void fegraph__layout(struct fegraph__graph scalar g) {
 void fegraph__build(struct fegraph__graph scalar g) {
     real scalar panel,n,nf,nw,i,j,k,a,b,outid,c,dt,m,eligible,gaps,unknown,count,ng,lo,hi
     real scalar net,den,groups,maxv,valid,weight,effectchange,wagechange
-    real matrix pairs,raw,p,vals,ee,info
+    real matrix pairs,raw,p,vals,ee,info,contributions
     real colvector adate,wid,f,to,w,t,selected,outside,exposure,firmrows,rowsel,idx,x,y,z,ww,attr,mask,inc,rev
     string rowvector vv,opts
     string colvector keys,levels,wlevels,s,sk,groupkeys,dummy
@@ -384,6 +395,12 @@ void fegraph__build(struct fegraph__graph scalar g) {
             for(i=1;i<=rows(pairs);i++) inc[pairs[i,2]]=inc[pairs[i,2]]+1
         }
         g.N[,2]=inc
+        g.binweights=inc
+        if(st_local("time")!="") {
+            g.binweights=J(rows(g.N),1,0)
+            for(i=1;i<=n;i++) if(f[i]>0 & selected[i]) g.binweights[f[i]]=g.binweights[f[i]]+1
+            g.binweights=g.binweights/rows(uniqrows(sort(fegraph__pick(t,selected),1)))
+        }
         adate=J(n,1,.)
         if(st_local("anim_mode")=="time") {
             g.S=fegraph__pick((f,t,J(n,1,1)),(f:>0):&selected)
@@ -434,7 +451,7 @@ void fegraph__build(struct fegraph__graph scalar g) {
             info=panelsetup(pairs,1); count=0
             for(i=1;i<=rows(info);i++) { m=info[i,2]-info[i,1]+1; count=count+m*(m-1)/2; }
             if(count>5000000) fegraph__fail("shared-worker projection exceeds 5 million contributions; shorten the window or use bipartite")
-            raw=J(count,5,0); adate=J(count,1,.); count=0
+            raw=J(count,5,0); adate=J(count,1,.); contributions=J(count,1,0); count=0
             if(st_local("anim_mode")=="time") {
                 dict=asarray_create("real",2)
                 for(i=1;i<=n;i++) if(f[i]>0 & selected[i]) {
@@ -443,7 +460,7 @@ void fegraph__build(struct fegraph__graph scalar g) {
                 }
             }
             for(i=1;i<=rows(info);i++) for(a=info[i,1];a<=info[i,2];a++) for(b=a+1;b<=info[i,2];b++) {
-                count++; raw[count,(1..3)]=(pairs[a,2],pairs[b,2],1)
+                count++; raw[count,(1..3)]=(pairs[a,2],pairs[b,2],1); contributions[count]=pairs[a,1]
                 if(st_local("anim_mode")=="time") adate[count]=max((asarray(dict,pairs[a,.]),asarray(dict,pairs[b,.])))
             }
         }
@@ -514,8 +531,9 @@ void fegraph__build(struct fegraph__graph scalar g) {
     if(sz=="equal") g.N[,2]=J(rows(g.N),1,1)
     if(sz=="flow") {
         g.N[,2]=J(rows(g.N),1,0)
-        for(i=1;i<=rows(g.E);i++) { a=g.E[i,1]; b=g.E[i,2]; g.N[a,2]=g.N[a,2]+g.E[i,3]; g.N[b,2]=g.N[b,2]+g.E[i,3]; }
+        for(i=1;i<=rows(g.E);i++) { a=g.E[i,1]; b=g.E[i,2]; g.N[a,2]=g.N[a,2]+g.E[i,3]; if(b<=rows(g.N)) g.N[b,2]=g.N[b,2]+g.E[i,3]; }
     }
+    if(!panel) g.binweights=g.N[,2]
     if(outid) if(g.N[outid,2]>=.) g.N[outid,2]=1
     if(outid) { g.labels[outid]=st_local("outsidelabel"); g.N[outid,(3,4,5,11)]=J(1,4,.); }
     g.original=g.ids; g.mapping=(1::rows(g.N))
@@ -527,6 +545,7 @@ void fegraph__build(struct fegraph__graph scalar g) {
         }
         g.N=g.N \ vals; g.ids=g.ids \ wlevels[wid]; g.labels=g.labels \ ("w:" :+ wlevels[wid])
     }
+    g.nodemap=(1::rows(g.N))
     fegraph__select(g)
     if(st_local("effectgroup")!="" & !fegraph__flag("pooled")) {
         x=fegraph__pick(g.N[,11],(g.N[,1]:==0):&g.N[,9])
@@ -534,9 +553,42 @@ void fegraph__build(struct fegraph__graph scalar g) {
     }
     if(g.type=="ladder" | fegraph__opt("bins")>0) fegraph__bins(g)
     if(st_local("anim_mode")=="time" & fegraph__opt("bins")>0) {
-        if(rows(g.A)) { g.A[,1]=g.mapping[g.A[,1]]; g.A[,2]=g.mapping[g.A[,2]]; }
-        if(rows(g.S)) g.S[,1]=g.mapping[g.S[,1]]
-        if(rows(g.X)) g.X[,1]=g.mapping[g.X[,1]]
+        if(rows(g.A)) { g.A[,1]=g.nodemap[g.A[,1]]; g.A[,2]=g.nodemap[g.A[,2]]; }
+        if(rows(g.S)) g.S[,1]=g.nodemap[g.S[,1]]
+        if(rows(g.X)) g.X[,1]=g.nodemap[g.X[,1]]
+    }
+    if(fegraph__opt("bins")>0 & !g.directed) {
+        if(g.type=="bipartite") {
+            // One edge per worker-bin, even after several jobs within that bin.
+            g.E[,3]=J(rows(g.E),1,1)
+        }
+        else if(rows(raw)) {
+            // Keep each worker once per unordered bin pair; the first date
+            // the worker linked the pair determines cumulative time playback.
+            ee=(contributions,g.nodemap[raw[,1]],g.nodemap[raw[,2]],adate)
+            for(i=1;i<=rows(ee);i++) if(ee[i,2]>ee[i,3]) ee[i,(2,3)]=ee[i,(3,2)]
+            ee=sort(ee,(1,2,3,4)); mask=J(rows(ee),1,1)
+            for(i=2;i<=rows(ee);i++) if(all(ee[i,(1..3)]:==ee[i-1,(1..3)])) mask[i]=0
+            ee=fegraph__pick(ee,mask)
+            raw=(ee[,(2,3)],J(rows(ee),1,1),J(rows(ee),2,0))
+            g.E=fegraph__sum(raw)
+            if(st_local("anim_mode")=="time") g.A=(raw,ee[,4])
+        }
+    }
+    if(fegraph__opt("bins")>0) {
+        if(sz=="equal") { idx=fegraph__which(g.N[,1]:!=1); g.N[idx,2]=J(rows(idx),1,1); }
+        if(sz=="matches") {
+            ee=uniqrows(sort((pairs[,1],g.nodemap[pairs[,2]]),(1,2)))
+            idx=fegraph__which(g.N[,1]:==0); g.N[idx,2]=J(rows(idx),1,0)
+            for(i=1;i<=rows(ee);i++) g.N[ee[i,2],2]=g.N[ee[i,2],2]+1
+        }
+        if(sz=="flow") {
+            idx=fegraph__which(g.N[,1]:!=1); g.N[idx,2]=J(rows(idx),1,0)
+            for(i=1;i<=rows(g.E);i++) for(j=1;j<=2;j++) {
+                a=g.E[i,j]
+                if(g.N[a,1]!=1) g.N[a,2]=g.N[a,2]+g.E[i,3]
+            }
+        }
     }
     // Recompute directed pair totals after aggregation; do not threshold before binning/netting.
     g.E=g.E,J(rows(g.E),6,0)
@@ -843,9 +895,9 @@ void fegraph__plot(struct fegraph__graph scalar g) {
                 k=asarray(lookup,(i,j))
                 if(g.E[k,10]) value=g.E[k,8]
             }
-            else if(g.net & asarray_contains(lookup,(j,i))) {
+            else if((g.net | !g.directed) & asarray_contains(lookup,(j,i))) {
                 k=asarray(lookup,(j,i))
-                if(g.E[k,10]) value=-g.E[k,8]
+                if(g.E[k,10]) value=fegraph__choose(g.net,-g.E[k,8],g.E[k,8])
             }
             vec[r]=value; out[r,(14,15,16)]=(b,a-.48,a+.48)
         }

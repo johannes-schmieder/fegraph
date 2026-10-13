@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.7.0 13oct2026}{...}
+{* *! version 0.8.0 13oct2026}{...}
 {.-}
 help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 {.-}
@@ -21,7 +21,7 @@ animations; it does not estimate firm effects or ranks.
 {pstd}
 {help fegraph##quickstart:Example} | {help fegraph##syntax:Syntax} |
 {help fegraph##views:Graph types} | {help fegraph##classic:Classic networks} | {help fegraph##sample:Sample and unemployment} |
-{help fegraph##attributes:Appearance}
+{help fegraph##attributes:Appearance} | {help fegraph##common:Common options}
 {p_end}
 
 {pstd}
@@ -83,11 +83,11 @@ Prepared moves or aggregated flows; optional scores are origin then destination:
 
 {pstd}
 Scores are numeric firm attributes supplied externally, not variables to
-estimate or average over workers. They must be constant within firm among observed
+estimate or implicitly average over workers. They must be constant within firm among observed
 values. They set the ordering and default {cmd:level()} and {cmd:nodecolor()};
 explicit level/color options override those defaults. Heatmap color always
 represents flows. Networks may omit a score; ladders and quantile bins require
-one. {cmd:order()} is an equivalent explicit alternative. Conflicting positional
+one (a supplied score or a mean from explicit outcome()). {cmd:order()} is an equivalent explicit alternative. Conflicting positional
 scores and order() are errors. Higher scores rank firms higher; {cmd:descending}
 handles ordinal ranks where 1 is best. A force layout does not position firms by rank.
 {p_end}
@@ -98,7 +98,7 @@ require {cmd:time()}; match/shared-worker graphs may omit it. Prepared inputs us
 both {cmd:origin()} and {cmd:destination()}; do not mix panel and endpoint ID options.
 Each prepared row contributes one move if {cmd:flow()} is omitted. flow() retains
 its ferank meaning: an input weight, never a gross/net selector. Use {cmd:net}
-for net flows. Weights may be fractional; Stata weight syntax is not accepted.
+for net flows or {cmd:gross} for gross flows (the default). Weights may be fractional; Stata weight syntax is not accepted.
 {p_end}
 
 {pstd}
@@ -114,18 +114,10 @@ Add {cmd:animation(filename.html, options)} to export an animated HTML version;
 see {help fegraph##animation:Animations}.
 {p_end}
 
-{pstd}
-{bf:Migration from 0.1:} move the positional firm ID into firm(), or move
-prepared endpoint IDs into origin()/destination(). Positional variables now mean
-scores. Old ID-based calls are rejected with a migration message rather than guessed.
-{p_end}
-
 {marker views}{...}
 {title:Views and edge definitions}
 {phang}
 {cmd:type(firmgraph|bipartite|ladder|heatmap|eventstudy)} selects the view; default {cmd:firmgraph}.
-The old spelling {cmd:type(firm)} remains a compatibility alias; r(type)
-returns firmgraph for either spelling.
 Firm networks show firms and directed moves. Bipartite graphs show distinct
 worker-firm matches, with large firm nodes and small worker nodes. Ladders
 place a supplied level against the percentile of a supplied ordering attribute.
@@ -147,12 +139,16 @@ Dense graphs can still benefit from bins(), top() or minflow().
 undirected: a worker seen at A, B, C links all three pairs, even without an A-C
 move. Each worker counts once per pair. They require worker-firm data.
 Bipartite edges count each match once regardless of repeated observations.
+Omit edge() for bipartite; its links always represent worker-firm matches.
+With bins(), count a worker once per worker-bin match or unordered bin pair.
+Repeated jobs at different firms in the same bin do not multiply the link.
 Time may be omitted for bipartite/shared views. With time supplied, duplicate
 worker-time keys are errors. Without time, repeated matches are allowed.
 {p_end}
 
 {phang}
-{cmd:net} uses gross A-B minus gross B-A after aggregation. Network arrows
+{cmd:gross} retains both observed flow directions (default).
+{cmd:net} uses gross A-B minus gross B-A after aggregation. Specify at most one. Network arrows
 show only positive net differences. Heatmaps show signed net cells in both
 directions, including implied reverse cells absent from the input. Balanced
 pairs disappear; raw gross counts remain in the saved edge table. Net applies
@@ -195,6 +191,34 @@ schematic band, with no estimated rank or effect. Boundaries/attrition do not
 create outside-state flows. A-U-B contributes A-U and U-B, not A-B.
 {p_end}
 
+{marker common}{...}
+{title:Common options across graph types}
+{pstd}
+All five views accept the positional score or order(), bins(), binweight(),
+descending, outcome(), palette(), sample(), nonemployment(), effectgroup(),
+animation(), saving(), name(), nodraw and graphopts(). Their defaults and the
+quantity plotted remain view-specific; use explicit bins() for comparisons.
+{p_end}
+
+{pstd}
+Firmgraph, ladder and heatmap show directed moves and accept gross/net,
+statistic(), minflow() and top(). All three also support undirected
+shared-worker counts with edge(shared); shared heatmaps display symmetric cells
+while exports and coverage count each unordered pair once.
+Bipartite shows distinct job matches; eventstudy shows mean outcome paths.
+These two views reject net/gross because neither plots directed flow totals.
+{p_end}
+
+{pstd}
+Nodecolor(), level(), nodesize() and workercolor() describe nodes, heights or
+links in the relevant network view. Heatmap cells always color flow statistics;
+nodecolor() and categorical are rejected there. Event-study lines are colored
+by destination group; palette() selects that sequence. Nonemployment remains
+a separate state in directed flows, is excluded from job/shared matches, and
+breaks event-study windows. These distinctions avoid assigning the same option
+a different statistical meaning across graphs.
+{p_end}
+
 {marker attributes}{...}
 {title:Attributes and visual encoding}
 {phang}
@@ -216,6 +240,28 @@ Use nolabels to hide every label, or labeltop(2000) to label every allowed firm.
 Classic places labels in one of eight directions to reduce collisions and draws
 them above the markers. Long labels and dense graphs may still require fewer
 labels or a larger graph. Exported labels are never truncated by labeltop().
+{p_end}
+
+{phang}
+{cmd:outcome(}{it:var}{cmd:)} explicitly computes firm means from selected,
+nonmissing employed observations in panel data. Observations have equal weight;
+repeated worker-period observations contribute once per row. Outside-state and
+unknown-firm rows do not contribute. Means are pooled over the selected history,
+including in HTML time playback. They supply default color and level, and the
+ordering when no positional score/order() is supplied. Explicit nodecolor() and
+level() override these defaults. With bins(), firm means are averaged using
+binweight(); this is not necessarily the pooled person-row mean of the bin.
+A firm with no observed outcomes has a missing mean. It cannot enter scored bins
+or a ladder without another score/level. Prepared flows must supply attributes
+externally. Fegraph computes descriptive means, never AKM effects or ranks.
+{p_end}
+
+{phang}
+For eventstudy, outcome() supplies the individual variable to plot, without a
+transformation or positivity restriction. Without a score/group(), its pooled
+firm means also supply ordering. Wage() with wagescale(log|level) is the
+wage-specific alternative with unit labels and positive-level validation;
+supply exactly one of wage() and outcome(). Both plot the supplied values.
 {p_end}
 
 {phang}
@@ -352,8 +398,10 @@ explicit outside state are allowed. Coincident connected nodes require binning.
 
 {phang}
 {cmd:bins(}{it:#}{cmd:)} combines firms into {it:#} score-quantile bins
-for ladder/heatmap views, analogous to binned scatterplots. Default 0 retains
-individual firms; 1 pools all selected firms. Maximum requested bins is 2000,
+for every graph type, analogous to binned scatterplots. Default 0 retains
+individual firms; eventstudy defaults to 4 but also accepts 0.
+A value of 1 pools all selected firms. Bipartite retains individual worker nodes.
+Maximum requested bins is 2000,
 subject to the graph's displayed-node limits. Quantiles use one observation per
 selected firm, not one per worker-period record. Cutpoints follow Stata's default
 {help xtile} definition; a score equal to a cutpoint goes in the lower bin.
@@ -364,13 +412,18 @@ Unemployment is outside the score distribution and remains a separate node.
 
 {phang}
 {cmd:binweight(firm|employment)} defaults to equal firm weights. Employment
-uses nodesize values for weighted quantiles and bin means; by default these are
-mean employment for panels. Zero weights do not determine cutpoints; an all-zero
+uses mean observed employment for panels and requires time(); changing nodesize()
+does not change these weights. For prepared flows, supply employment values
+explicitly in nodesize(origin_employment destination_employment). Zero weights do not determine cutpoints; an all-zero
 bin is an error. Bin height, ordering, color and ladder percentile are weighted
-means of the member-firm values; size and exposure are summed. Quantiles are
+means of the member-firm values; employment, supplied size and exposure are summed.
+With nodesize(equal), bins remain equally sized. With nodesize(matches), bin
+size counts distinct workers; flow sizes use the aggregated incident links. Quantiles are
 computed after component/ego selection but before edge thresholds. Gross flows
 are summed before netting, rates or thresholds. Within-bin moves remain in
-exports and heatmaps; ladders omit self-arrows and report their mass. Repeated
+exports and heatmaps; firmgraphs and ladders omit self-arrows and report their mass.
+For shared-worker graphs, within-bin mass counts workers connected to at least
+two member firms, once per bin. It is distinct from directed within-bin moves. Repeated
 same-firm observations are not moves. Use a common sample/weights for comparisons.
 {p_end}
 
@@ -407,12 +460,13 @@ Net heatmaps select unordered pairs and show their reversals together.
 
 {phang}
 {cmd:layout(force|circle|bipartite)} defaults to force for firms and
-bipartite for match graphs. Ladders and heatmaps use their data-defined coordinates.
+bipartite for match graphs. Circle layouts and the bipartite firm row follow
+score order (reversed by descending); force positions express connectivity.
+Ladders and heatmaps use their data-defined coordinates.
 {cmd:seed(}{it:#}{cmd:)} and {cmd:iterations(}{it:#}{cmd:)} control reproducible force
 layout; defaults 1 and 200 (up to 2000). Force layout starts from a deterministic disk and applies mild centering so
-isolates do not spread arbitrarily far from the connected graph. This changes
-force coordinates from versions before 0.4; use coordinates() to retain an earlier
-layout. Layout uses no Stata/Mata random draws.
+isolates do not spread arbitrarily far from the connected graph.
+Layout uses no Stata/Mata random draws.
 Layout distances have no economic units. Reciprocal arrows use opposite curves.
 {p_end}
 
@@ -442,6 +496,37 @@ and shrinking markers does not change which flows are included.
 Examples below need only fegraph, except those in Reports. Every clickable
 block contains its own data generation and can be run independently. The runner
 reads the code displayed in this help file; it restores data and estimation results even on failure.
+{p_end}
+
+{title:Common syntax with score bins and outcome means}
+{pstd}
+The same score, outcome and bins work in all five views. Worker nodes remain
+individual in bipartite. Eventstudy uses the individual outcome as its y-axis.
+The example saves one HTML artifact per view in fegraph_examples/.
+{p_end}
+{cmd}{...}
+        preserve
+{* example_start - common_options}{...}
+        clear
+        set obs 120
+        generate workerid = ceil(_n/6)
+        generate year = mod(_n-1,6)+1
+        generate firmid = mod(floor((workerid-1)/3)+floor((year-1)/2),6)+1
+        generate psi = (firmid-3.5)/10
+        generate double lnwage = 4+psi+.02*workerid+.01*year
+        capture mkdir fegraph_examples
+        foreach view in firmgraph bipartite ladder heatmap eventstudy {
+            fegraph psi, worker(workerid) firm(firmid) time(year) ///
+                type(`view') bins(3) outcome(lnwage) palette(blues) ///
+                name(fegraph_common, replace) ///
+                animation("fegraph_examples/common-`view'.html", mode(time) replace)
+        }
+{* example_end}{...}
+        restore
+{txt}{...}
+{pstd}
+{stata fegraph_run common_options using fegraph.sthlp:Click to run this example}
+(your original data are restored).
 {p_end}
 
 {title:Worker--firm matches}
@@ -815,12 +900,13 @@ causal estimator. A flat pre-profile does not establish exogenous mobility.
 {p 8 12 2}
 {cmd:fegraph} {it:firmscore}, {cmd:worker(}{it:id}{cmd:)}
 {cmd:firm(}{it:id}{cmd:)} {cmd:time(}{it:period}{cmd:)}
-{cmd:type(eventstudy) wage(}{it:outcome}{cmd:) wagescale(log)}
+{cmd:type(eventstudy) outcome(}{it:var}{cmd:)}
 {cmd:bins(4) window(-2 1)}
 {p_end}
 
 {phang}
-{cmd:wage()} supplies the outcome, separately from the ranking score.
+{cmd:outcome()} supplies a general outcome without transformation.
+Alternatively, {cmd:wage()} supplies wages, separately from the ranking score.
 With {cmd:wagescale(log)}, values are already log wages; with
 {cmd:wagescale(level)}, positive wage levels are plotted directly. No automatic
 logarithm, percent-change conversion, regression or residualization is performed
@@ -848,7 +934,8 @@ Annual snapshots do not establish uninterrupted job-to-job moves between dates.
 {p_end}
 
 {phang}
-{cmd:bins()} defaults to 4 here (positive integer, at most 2000). Equal-firm quantiles
+{cmd:bins()} defaults to 4 here (nonnegative integer, at most 2000);
+0 retains individual firms ordered by score. Equal-firm quantiles
 use the shared Stata-percentile engine on one record per selected employed firm with an observed score, before event
 restrictions. Tied scores stay together. Missing scores are filled only from
 other selected records of the same firm; conflicting scores are errors.
@@ -929,7 +1016,7 @@ origin()/destination() flow inputs are not applicable to event studies.
 
 {pstd}
 Returned results: r(N_candidates), r(N_excluded_window),
-r(N_excluded_wage), r(N_excluded_group) are sequential event-selection counts;
+r(N_excluded_outcome), r(N_excluded_group) are sequential event-selection counts;
 r(N_events), r(N_workers) describe all retained balanced events;
 r(N_shown_events), r(N_paths) describe the pooled display. r(N_input), r(N_bins),
 r(bins_requested), r(window_start), r(window_end), r(delta), r(score), r(group),
@@ -1273,7 +1360,8 @@ rendered cells. Captions report coverage; there is no silent component selection
 {pstd}
 Additional scalars: r(N_bins) is the number of nonempty firm bins (0 without
 aggregation); r(bins_requested) is the requested count. Macros: r(type), r(input),
-r(style), r(sample), r(score) (resolved score variables), r(version). {cmd:fegraph, version}
+r(style), r(sample), r(score) (supplied score variables), r(outcome), r(version).
+When outcome() supplies the ordering from firm means, r(score) is empty. {cmd:fegraph, version}
 reports the version. r(palette) and r(edgepalette) identify the resolved palette
 names (or custom), with reverse when requested. r(palette_colors) and
 r(edgepalette_colors) contain the seven resolved colors in display order.

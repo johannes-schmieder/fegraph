@@ -27,7 +27,7 @@ restore
 fegraph, worker(workerid) firm(firmid) type(bipartite) nonemployment(unemployed) nodraw
 fegraph if time>1, worker(workerid) firm(firmid) time(time) nonemployment(unemployed) nodraw
 fegraph, version
-assert `"`r(version)'"'=="0.7.0"
+assert `"`r(version)'"'=="0.8.0"
 generate double rank_pct=100*(firmid-1)/5 if !unemployed
 fegraph rank_pct, worker(workerid) firm(firmid) time(time) type(ladder) ///
     level(psi) nodecolor(psi) nonemployment(unemployed) ///
@@ -38,7 +38,7 @@ assert abs(level-(-.3+.12*(real(id)-1)))<1e-12 if kind==0
 assert ordering!=level if kind==0
 restore
 
-* Explicit IDs prevent silently interpreting legacy IDs as scores.
+* Both panel ID options are required; scores are independent of IDs.
 capture noisily fegraph firmid, worker(workerid) time(time) nodraw
 assert _rc==198
 capture noisily fegraph psi, firm(firmid) nodraw

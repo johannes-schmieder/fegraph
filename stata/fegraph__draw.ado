@@ -1,4 +1,4 @@
-*! fegraph 0.7.0 10oct2026
+*! fegraph 0.8.0 13oct2026
 program define fegraph__draw
     version 16.0
     syntax , TYPE(string) EDGE(string) EDGECOLOR(string) EDGESIZE(string) STATISTIC(string) CMIN(real) CMAX(real) WMIN(real) WMAX(real) ///
@@ -29,6 +29,10 @@ program define fegraph__draw
         }
         local axes "xtitle(Destination) ytitle(Origin) aspect(1)"
         local title "Worker flows"
+        if "`edge'"=="shared" {
+            local axes `"xtitle("Firm / bin") ytitle("Firm / bin") aspect(1)"'
+            local title "Shared-worker connections"
+        }
     }
     else {
         forvalues c=0/7 {

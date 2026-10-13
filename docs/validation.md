@@ -1,6 +1,6 @@
 # Validation and support
 
-Version 0.7.0, checked 2026-10-10 on macOS with licensed Stata/MP 19.
+Version 0.8.0, checked 2026-10-13 on macOS with licensed Stata/MP 19.
 Source targets Stata 16 syntax. No licensed Stata 16–18, Windows or Linux
 qualification is claimed. Generation uses official Stata/Mata; HTML playback uses browser JavaScript.
 
@@ -25,11 +25,12 @@ tracked. A zero batch process exit code alone is insufficient.
 | `smoke.do` | All four graph types, known synthetic transition/match counts, explicit outside state, rank aggregation, graph/data exports |
 | `contracts.do` | Fractional/duplicate flows, zero/self rows, balanced net pairs, exact string IDs, full denominators under filtering, ego boundary mass, gap/unknown/outside distinctions, sample adjacency, shared workers, ties, bin means, no-edge graphs, duplicate-key failures, worker/firm ID collisions, and independently selectable width/color statistics |
 | `advanced.do` | More than 65,536 string workers, exact large numeric IDs, million-row aggregation, component-aware employment-weighted bins, external comparability groups, prepared exposures, paired net heatmap filtering, reproducible layouts, categorical colors, distinct-worker node sizes |
-| `interface.do` | Optional scores, explicit panel/endpoint IDs, attribute defaults/overrides, legacy-call rejection, qualifiers, outside-score missingness and state preservation |
+| `interface.do` | Optional scores, explicit panel/endpoint IDs, attribute defaults/overrides, required-ID rejection, qualifiers, outside-score missingness and state preservation |
 | `quantiles.do` | Native `xtile` reference comparisons with ties/skew/weights/descending scores, `collapse` bin means, worker-record multiplicity invariance, outside exclusion and move conservation |
+| `consistency.do` | Common bins/outcomes across all five views, unique worker-bin/shared-bin counts, symmetric shared heatmaps, independent employment weights, score sorting, sample/exclusion checks, canonical names and independent HTML period counts |
 | `routing.do` | Above/below separation, shared-endpoint lanes, reciprocal arrows, input-order invariance, curved marker clearance, tied ranks, nonmonotone levels, unchanged node values/counts, and a gross-flow render |
-| `manybins.do` | 50/100/200-bin dense prepared-flow fixtures; conserved mass, node-scaling invariance, default/alias names and scale guards |
-| `help.do` | Stata SMCL rendering at widths 79/120, independent checks for literal directives and merged headings/paragraphs; thirteen native/HTML help blocks preserving data and estimates; missing-block failure |
+| `manybins.do` | 50/100/200-bin dense prepared-flow fixtures; conserved mass, node-scaling invariance, canonical names and scale guards |
+| `help.do` | Stata SMCL rendering at widths 79/120, independent checks for literal directives and merged headings/paragraphs; fourteen native/HTML help blocks preserving data and estimates; missing-block failure |
 | `reports.do` | All five optional help blocks: three individual DGP PDFs, combined PDF, compact pipeline; real fesim/fereg/ferank/latexlog/texpdf, paths with spaces, state restoration and overwrite guard |
 | `classic.do` | Counts/node/edge/coordinate invariance across styles, input-order invariance, label quotas and ties, outside labels, empty graphs, option guards, directed arrows and two network renders |
 | `palettes.do` | Named/custom palettes and reversal, all four views, worker/categorical colors, invalid-input guards, unchanged exported graphs and caller state; SVG checks verify marker, legend, arrow and heatmap colors |
@@ -43,6 +44,33 @@ Tests verify data signatures and original row order, preserved estimation
 coefficients and RNG state, both success and failure cases, and exact reuse of
 exported coordinates. Graph geometry is deterministic for a given layout seed.
 Numeric tolerances are used for floating-point wage changes and bin levels.
+
+
+## Cross-view consistency (0.8)
+
+All 17 licensed macOS Stata/MP 19 suites pass, including installation, the
+14 ordinary help blocks, integration and five optional report blocks. The final
+source hashes match the suite receipt.
+
+The new consistency suite compares bin maps and gross/net totals across flow
+views, worker-bin and shared-worker deduplication, equal/match/flow node sizing,
+node-size-independent employment weights, explicit means versus externally
+computed means, selected/original outcome samples, outside-state exclusion,
+attribute overrides, bipartite score sorting and generic event outcomes. It
+also checks bins(0) for eventstudy and rejection of undefined option combinations.
+Independent JSON checks verify observed-period bipartite counts and cumulative
+shared-worker connections after binning. Eight network HTML fixtures execute
+against the DOM/Canvas mock; actual browser inspection separately checks binned
+bipartite nodes, symmetric shared heatmap cells and general outcome profiles,
+with playback/stepping and no console errors. Browser inspection uses loopback
+HTTP on the desktop; this does not claim new Android hardware qualification.
+
+`docs/options.md` records the option matrix and statistical differences between
+flows, job matches and outcome profiles. The nineteenth runnable help block,
+common_options, shares score/outcome/bins syntax across all five views. The
+Stata help continues to pass the actual SMCL rendering checks at widths 79/120.
+Exact-source suite receipts and logs remain in build/test-runs; analytic
+fixtures and generated HTML are in build/consistency.
 
 ## Scale observation
 

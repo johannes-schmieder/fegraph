@@ -1,3 +1,3 @@
 v 3
 d fegraph: graphs for linked worker-firm data
-p fegraph Firm networks, worker-firm graphs, job ladders , flow heatmaps and mover event studies
+p fegraph Firm networks, worker-firm graphs, job ladders, flow heatmaps and mover event studies

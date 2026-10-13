@@ -31,7 +31,9 @@ estimates and RNG unchanged. Preserve gross flow counts and full denominators;
 never silently alter the graph to make it look more convenient. New options
 must have a statistical definition and relevant contract checks. Update help,
 README and changelog when changing the interface. Keep data, generated graphs,
-logs and machine configuration out of source control. Do not add self-hosted
+logs and machine configuration out of source control. The two synthetic PNGs
+in `docs/images/` are deliberate documentation assets; their reproduction
+scripts are listed in `examples/README.md`. Do not add self-hosted
 runners or unlicensed Stata binaries to GitHub.
 
 Run from the repository root:
@@ -60,3 +62,15 @@ tag, public visibility change or SSC submission is part of ordinary development.
 For the complete optional report checks, also supply `--fereg ../fereg` and
 `--texpdf ../texpdf`, with latexlog installed. `--reports-only` runs only those
 checks. The graph command itself must continue to work without these companions.
+
+## Repository layout
+
+- `README.md`: installation, quick start and examples for new users.
+- `INSTALLATION.md`: upgrades, local installation and troubleshooting.
+- `docs/usage.md`: graph semantics and longer recipes; installed help is authoritative.
+- `examples/`: runnable galleries and their synthetic input fixtures.
+- `tests/` and `scripts/`: licensed Stata contracts and independent export checks.
+- `build/`: ignored generated results and verification evidence.
+
+The original design sketch and rendering prototype remain available in Git
+history; maintained examples call the current command.

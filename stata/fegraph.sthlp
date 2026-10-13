@@ -9,7 +9,7 @@ help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 
 
 {pstd}
-{help fegraph##quickstart:Example} | {help fegraph##syntax:Syntax} |
+{help fegraph##installation:Installation} | {help fegraph##quickstart:Example} | {help fegraph##syntax:Syntax} |
 {help fegraph##views:Graph types} | {help fegraph##classic:Classic networks} | {help fegraph##sample:Sample and unemployment} |
 {help fegraph##attributes:Appearance}
 
@@ -17,6 +17,17 @@ help for {cmd:fegraph} {right:(Johannes F. Schmieder)}
 {help fegraph##bins:Scores and bins} | {help fegraph##selection:Selection} |
 {help fegraph##examples:Runnable examples} | {help fegraph##reports:DGP reports} |
 {help fegraph##animation:Animations} | {help fegraph##eventstudy:Mover event studies} | {help fegraph##output:Output} | {help fegraph##stored:Stored results}
+
+{marker installation}
+{title:Installation and updates}
+{pstd}Install the current package from GitHub:
+
+{p 8 8 2}{cmd:net install fegraph, replace from("https://raw.githubusercontent.com/johannes-schmieder/fegraph/main/")}
+
+{pstd}Restart Stata after updating a loaded version, then run
+{cmd:fegraph, selftest}. The package includes both HTML viewer resources.
+See {browse "https://github.com/johannes-schmieder/fegraph/blob/main/INSTALLATION.md":installation notes}
+and {browse "https://github.com/johannes-schmieder/fegraph":the repository}.
 
 {marker quickstart}
 {title:Start with a firm graph}
@@ -1068,4 +1079,4 @@ and returns r(passed)=1 on success. It creates a named example graph.
 execution has been checked on macOS Stata/MP 19; Stata 16-18 and Windows/Linux
 have not been qualified. fesim, fereg, ferank, latexlog and texpdf are optional companions, not runtime
 dependencies. The repository includes contract, scale, integration, rendering
-and fresh-install checks. This is a private development package, not an SSC release.
+and fresh-install checks. The current package is distributed on GitHub; there is no SSC release.

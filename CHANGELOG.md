@@ -1,5 +1,13 @@
 # Changelog
 
+## Public repository preparation — 2026-10-13
+
+- Add direct GitHub installation instructions, a concise README with synthetic
+  graph previews, a detailed usage guide and a complete example index.
+- Remove the superseded design sketch and initial rendering prototype from the
+  current tree; their history remains in Git.
+- Keep the 0.7.0 command interface and statistical behavior unchanged.
+
 ## 0.7.0 — 2026-10-10 (private development)
 
 - Add `type(eventstudy)` with score-first syntax, wage outcomes, fixed endpoint

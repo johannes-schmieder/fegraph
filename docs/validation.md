@@ -220,3 +220,19 @@ counts. Screenshots and final artifact hashes are retained under
 `build/eventstudy-review/`. A 390-by-844 viewport checks responsive layout; it is
 not Android hardware qualification. The earlier user-confirmed download/open
 workflow remains the delivery guidance for restricted in-app previews.
+
+## Public installation preparation (2026-10-13)
+
+The README and installation guide now use the raw GitHub package URL. The
+0.7.0 runtime, report helper and test sources are byte-identical to the earlier
+16-suite qualification; only help text and package descriptions changed.
+A fresh isolated local installation and replacement installation pass with
+all 16 installed files byte-matching the manifest sources. The README's panel
+recipes, HTML/export commands and all 13 non-report help examples run against
+the installed package. The five report entry points and their implementation
+are unchanged from the full 0.7 report qualification.
+
+Installation drivers, logs and exact file hashes are saved under ignored
+`build/publication-20261013/`. The same smoke check can run against the public
+raw GitHub URL after publication; its receipt is stored separately from the
+local installation receipt.
